@@ -36,6 +36,9 @@ int persist_read_int(uint32_t key) {
 }
 
 void test_save_and_load_connections(void) {
+    // Clear storage for test isolation
+    memset(persist_exists_flags, 0, sizeof(persist_exists_flags));
+
     SavedConnection conns[2];
     conns[0] = create_saved_connection("8503000", "Zürich HB", "8507000", "Bern");
     conns[1] = create_saved_connection("8507000", "Bern", "8508500", "Interlaken");
@@ -53,7 +56,7 @@ void test_save_and_load_connections(void) {
 }
 
 void test_load_when_empty(void) {
-    // Clear storage
+    // Clear storage for test isolation
     memset(persist_exists_flags, 0, sizeof(persist_exists_flags));
 
     SavedConnection loaded[MAX_SAVED_CONNECTIONS];
@@ -65,6 +68,9 @@ void test_load_when_empty(void) {
 }
 
 void test_connection_limit_reached(void) {
+    // Clear storage for test isolation
+    memset(persist_exists_flags, 0, sizeof(persist_exists_flags));
+
     SavedConnection conns[MAX_SAVED_CONNECTIONS];
     for (int i = 0; i < MAX_SAVED_CONNECTIONS; i++) {
         conns[i] = create_saved_connection("123", "A", "456", "B");
@@ -76,10 +82,45 @@ void test_connection_limit_reached(void) {
     printf("test_connection_limit_reached: PASS\n");
 }
 
+void test_save_and_load_favorites(void) {
+    // Clear storage for test isolation
+    memset(persist_exists_flags, 0, sizeof(persist_exists_flags));
+
+    Station favorites[2];
+    favorites[0] = create_station("8503000", "Zürich HB", 0);
+    favorites[1] = create_station("8507000", "Bern", 15000);
+
+    save_favorites(favorites, 2);
+
+    Station loaded[MAX_FAVORITE_STATIONS];
+    int count = load_favorites(loaded);
+
+    assert(count == 2);
+    assert(strcmp(loaded[0].name, "Zürich HB") == 0);
+    assert(strcmp(loaded[1].id, "8507000") == 0);
+    assert(loaded[1].distance_meters == 15000);
+
+    printf("test_save_and_load_favorites: PASS\n");
+}
+
+void test_load_favorites_when_empty(void) {
+    // Clear storage for test isolation
+    memset(persist_exists_flags, 0, sizeof(persist_exists_flags));
+
+    Station loaded[MAX_FAVORITE_STATIONS];
+    int count = load_favorites(loaded);
+
+    assert(count == 0);
+
+    printf("test_load_favorites_when_empty: PASS\n");
+}
+
 int main(void) {
     test_save_and_load_connections();
     test_load_when_empty();
     test_connection_limit_reached();
+    test_save_and_load_favorites();
+    test_load_favorites_when_empty();
     printf("\nAll persistence tests passed!\n");
     return 0;
 }

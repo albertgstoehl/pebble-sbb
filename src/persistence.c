@@ -14,6 +14,10 @@ int load_connections(SavedConnection *connections) {
         return 0;
     }
     int count = persist_read_int(PERSIST_KEY_NUM_CONNECTIONS);
+    // Validate count to prevent buffer overflow
+    if (count < 0 || count > MAX_SAVED_CONNECTIONS) {
+        return 0;
+    }
     persist_read_data(PERSIST_KEY_CONNECTIONS, connections,
                       sizeof(SavedConnection) * count);
     return count;
@@ -33,6 +37,10 @@ int load_favorites(Station *stations) {
         return 0;
     }
     int count = persist_read_int(PERSIST_KEY_NUM_FAVORITES);
+    // Validate count to prevent buffer overflow
+    if (count < 0 || count > MAX_FAVORITE_STATIONS) {
+        return 0;
+    }
     persist_read_data(PERSIST_KEY_FAVORITES, stations,
                       sizeof(Station) * count);
     return count;

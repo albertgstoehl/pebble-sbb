@@ -6,7 +6,17 @@ async function fetchNearbyStations(lat, lon) {
   const url = `${SBB_API_BASE}/locations?x=${lon}&y=${lat}&type=station`;
 
   const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
   const data = await response.json();
+
+  // Check that data.stations exists and is an array
+  if (!data.stations || !Array.isArray(data.stations)) {
+    return [];
+  }
 
   const stations = data.stations.slice(0, 10).map(station => ({
     id: station.id,
@@ -22,7 +32,17 @@ async function fetchConnections(fromId, toId) {
   const url = `${SBB_API_BASE}/connections?from=${fromId}&to=${toId}&limit=5`;
 
   const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
   const data = await response.json();
+
+  // Check that data.connections exists and is an array
+  if (!data.connections || !Array.isArray(data.connections)) {
+    return [];
+  }
 
   const connections = data.connections.map(conn => {
     const sections = conn.sections.map(section => ({

@@ -58,6 +58,18 @@ describe('SBB API Client', () => {
     ).rejects.toThrow('Network error');
   });
 
+  test('fetchNearbyStations handles HTTP 404 error', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: async () => ({})
+    });
+
+    await expect(
+      sbbApi.fetchNearbyStations(47.3769, 8.5417)
+    ).rejects.toThrow('HTTP error! status: 404');
+  });
+
   test('fetchConnections returns connection array', async () => {
     const mockResponse = {
       connections: [
@@ -143,5 +155,17 @@ describe('SBB API Client', () => {
     const result = await sbbApi.fetchConnections('8503000', '8508500');
 
     expect(result[0].numChanges).toBe(2); // 3 sections = 2 changes
+  });
+
+  test('fetchConnections handles HTTP 500 error', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({})
+    });
+
+    await expect(
+      sbbApi.fetchConnections('8503000', '8507000')
+    ).rejects.toThrow('HTTP error! status: 500');
   });
 });

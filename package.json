@@ -1,0 +1,55 @@
+{
+  "name": "sbb-train-schedule",
+  "author": "YourName",
+  "version": "1.0.0",
+  "description": "SBB train schedule app for Pebble",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/**/*.test.js"]
+  },
+  "pebble": {
+    "displayName": "SBB Schedule",
+    "uuid": "8a9b4c2d-1e3f-4a5b-6c7d-8e9f0a1b2c3d",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "aplite",
+      "basalt"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "messageKeys": {
+      "REQUEST_CONNECTIONS": 0,
+      "REQUEST_NEARBY_STATIONS": 1,
+      "CONNECTION_DATA": 2,
+      "STATION_LIST": 3,
+      "DEPARTURE_STATION_ID": 10,
+      "ARRIVAL_STATION_ID": 11,
+      "STATION_NAME": 20,
+      "STATION_ID": 21,
+      "STATION_DISTANCE": 22,
+      "DEPARTURE_TIME": 30,
+      "ARRIVAL_TIME": 31,
+      "PLATFORM": 32,
+      "TRAIN_TYPE": 33,
+      "DELAY_MINUTES": 34,
+      "NUM_CHANGES": 35,
+      "ERROR_MESSAGE": 40
+    },
+    "resources": {
+      "media": []
+    }
+  }
+}

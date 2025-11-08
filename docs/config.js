@@ -90,17 +90,24 @@
         }
 
         stations.slice(0, 10).forEach(function(station) {
+            // Skip stations without valid ID
+            if (!station.id) {
+                console.warn('Station without ID:', station);
+                return;
+            }
+
             var item = document.createElement('div');
             item.className = 'autocomplete-item';
             item.textContent = station.name;
-            item.dataset.id = station.id;
+            item.dataset.id = String(station.id);
             item.dataset.name = station.name;
 
             item.addEventListener('click', function() {
                 selectedStation = {
-                    id: this.dataset.id,
+                    id: String(this.dataset.id),
                     name: this.dataset.name
                 };
+                console.log('Selected station:', selectedStation);
                 document.getElementById('stationSearch').value = this.dataset.name;
                 resultsDiv.style.display = 'none';
                 updateAddButton();

@@ -1,5 +1,6 @@
 // Mock mode for emulator testing (no network available)
-var MOCK_MODE = true;  // Set to false for real device
+// Automatically disabled in test environment
+var MOCK_MODE = typeof jest === 'undefined';
 
 // Mock nearby stations data
 var MOCK_NEARBY_STATIONS = [

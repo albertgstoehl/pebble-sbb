@@ -56,6 +56,15 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     }
 
     APP_LOG(APP_LOG_LEVEL_INFO, "Drawing connection %d", cell_index->row);
+
+    // Bounds check to prevent crash
+    if (cell_index->row >= s_num_connections) {
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Row %d out of bounds (total: %d)",
+                cell_index->row, s_num_connections);
+        menu_cell_basic_draw(ctx, cell_layer, "Error", "Invalid row", NULL);
+        return;
+    }
+
     Connection *conn = &s_connections[cell_index->row];
     GRect bounds = layer_get_bounds(cell_layer);
 

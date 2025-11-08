@@ -30,6 +30,9 @@
     "watchapp": {
       "watchface": false
     },
+    "capabilities": [
+      "configurable"
+    ],
     "messageKeys": {
       "REQUEST_CONNECTIONS": 0,
       "REQUEST_NEARBY_STATIONS": 1,

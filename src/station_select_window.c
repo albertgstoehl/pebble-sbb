@@ -57,14 +57,20 @@ static void initiate_menu_scroll_timer(void) {
 }
 
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
-    return s_num_favorites > 0 ? 2 : 1;
+    // Always show 2 sections: Action/Nearby + Favorites
+    return 2;
 }
 
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-    if (section_index == 0 && s_num_favorites > 0) {
-        return s_num_favorites;
+    if (section_index == 0) {
+        // Section 0: "Stations near me" or GPS results
+        if (!s_gps_search_active && s_num_stations == 0) {
+            return 1;  // Just "Stations near me" row
+        }
+        return s_num_stations > 0 ? s_num_stations : 1;  // GPS results or loading
     }
-    return s_num_stations > 0 ? s_num_stations : 1;
+    // Section 1: Favorites
+    return s_num_favorites;
 }
 
 static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {

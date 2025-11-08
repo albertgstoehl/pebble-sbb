@@ -216,7 +216,7 @@ static void window_load(Window *window) {
 
     // Create status layer
     s_status_layer = text_layer_create(GRect(0, bounds.size.h - 30, bounds.size.w, 30));
-    text_layer_set_text(s_status_layer, "Searching nearby...");
+    text_layer_set_text(s_status_layer, "Select a station");
     text_layer_set_text_alignment(s_status_layer, GTextAlignmentCenter);
     text_layer_set_font(s_status_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
     layer_add_child(window_layer, text_layer_get_layer(s_status_layer));
@@ -239,14 +239,18 @@ static void window_load(Window *window) {
     menu_layer_set_highlight_colors(s_menu_layer, GColorBlack, GColorWhite);
     layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
 
-    // Load favorites
-    s_num_favorites = load_favorites(s_favorites);
+    // Load favorites and convert to Station format
+    FavoriteDestination fav_destinations[MAX_FAVORITE_DESTINATIONS];
+    int num_fav_destinations = load_favorite_destinations(fav_destinations);
 
-    // Request nearby stations via AppMessage
-    DictionaryIterator *iter;
-    app_message_outbox_begin(&iter);
-    dict_write_uint8(iter, MESSAGE_KEY_REQUEST_NEARBY_STATIONS, 1);
-    app_message_outbox_send();
+    s_num_favorites = 0;
+    for (int i = 0; i < num_fav_destinations && i < MAX_FAVORITE_STATIONS; i++) {
+        s_favorites[s_num_favorites++] = favorite_to_station(&fav_destinations[i]);
+    }
+
+    APP_LOG(APP_LOG_LEVEL_INFO, "Loaded %d favorite destinations", s_num_favorites);
+
+    // DO NOT automatically trigger GPS - wait for user to select "Stations near me"
 }
 
 static void window_unload(Window *window) {

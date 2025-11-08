@@ -194,34 +194,34 @@
         warning.style.display = favorites.length >= 10 ? 'block' : 'none';
     }
 
-    function handleSave() {
-        console.log('Save clicked. Pebble available:', !!window.Pebble);
-        console.log('pebbleReady flag:', pebbleReady);
-
-        if (!window.Pebble) {
-            // Testing mode - show what would be saved
-            var message = 'Testing Mode (No Pebble object found)\n\n';
-            message += 'Would save ' + favorites.length + ' favorites:\n\n';
-            favorites.forEach(function(fav) {
-                message += '• ' + fav.label + ': ' + fav.name + '\n';
-            });
-            message += '\nCheck console logs for debugging info.\n';
-            message += 'To actually save, open from Pebble app Settings.';
-            alert(message);
-            return;
+    function getQueryParam(variable, defaultValue) {
+        var query = location.search.substring(1);
+        var vars = query.split('&');
+        for (var i = 0; i < vars.length; i++) {
+            var pair = vars[i].split('=');
+            if (pair[0] === variable) {
+                return decodeURIComponent(pair[1]);
+            }
         }
+        return defaultValue || false;
+    }
 
-        console.log('Saving favorites to watch...');
+    function handleSave() {
+        console.log('Save clicked');
+
+        // Get return_to URL from query parameters (Pebble passes this)
+        var return_to = getQueryParam('return_to', 'pebblejs://close#');
+        console.log('return_to:', return_to);
 
         // Encode favorites as JSON and pass back via URL
         var configData = {
             favorites: favorites
         };
 
-        var return_to = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(configData));
-        console.log('Closing with data:', return_to);
+        var url = return_to + encodeURIComponent(JSON.stringify(configData));
+        console.log('Closing with URL:', url);
 
         // Close and return data
-        window.location.href = return_to;
+        document.location = url;
     }
 })();

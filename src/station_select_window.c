@@ -1,6 +1,10 @@
 #include "station_select_window.h"
 #include "persistence.h"
 
+#define SCROLL_WAIT_MS 1000  // Wait 1 second before starting scroll
+#define SCROLL_STEP_MS 200   // Scroll every 200ms
+#define MENU_CHARS_VISIBLE 17 // Approx chars visible in menu cell
+
 static Window *s_window;
 static MenuLayer *s_menu_layer;
 static Station s_stations[50];
@@ -9,6 +13,42 @@ static Station s_favorites[MAX_FAVORITE_STATIONS];
 static int s_num_favorites = 0;
 static StationSelectCallback s_callback;
 static TextLayer *s_status_layer;
+
+// Text scrolling state
+static AppTimer *s_scroll_timer = NULL;
+static int s_scroll_offset = 0;
+static bool s_scrolling_required = false;
+static bool s_menu_reloading = false;
+
+// Forward declarations
+static void scroll_menu_callback(void *data);
+static void initiate_menu_scroll_timer(void);
+
+// Timer-based text scrolling implementation
+static void scroll_menu_callback(void *data) {
+    s_scroll_timer = NULL;
+    s_scroll_offset++;
+
+    if (!s_scrolling_required) {
+        return;
+    }
+
+    s_menu_reloading = true;
+    s_scrolling_required = false;
+    menu_layer_reload_data(s_menu_layer);
+    s_scroll_timer = app_timer_register(SCROLL_STEP_MS, scroll_menu_callback, NULL);
+}
+
+static void initiate_menu_scroll_timer(void) {
+    s_scrolling_required = true;
+    s_scroll_offset = 0;
+    s_menu_reloading = false;
+
+    if (s_scroll_timer) {
+        app_timer_cancel(s_scroll_timer);
+    }
+    s_scroll_timer = app_timer_register(SCROLL_WAIT_MS, scroll_menu_callback, NULL);
+}
 
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
     return s_num_favorites > 0 ? 2 : 1;
@@ -36,16 +76,30 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
     Station *station;
     static char subtitle[32];
+    MenuIndex selected_index = menu_layer_get_selected_index(s_menu_layer);
+    bool is_selected = (cell_index->section == selected_index.section &&
+                        cell_index->row == selected_index.row);
 
     if (cell_index->section == 0 && s_num_favorites > 0) {
         station = &s_favorites[cell_index->row];
-        menu_cell_basic_draw(ctx, cell_layer, station->name, NULL, NULL);
+        const char *name_to_draw = station->name;
+
+        // Apply scroll offset if this row is selected
+        if (is_selected) {
+            int len = strlen(station->name);
+            if (len - MENU_CHARS_VISIBLE - s_scroll_offset > 0) {
+                name_to_draw += s_scroll_offset;
+                s_scrolling_required = true;
+            }
+        }
+        menu_cell_basic_draw(ctx, cell_layer, name_to_draw, NULL, NULL);
     } else {
         if (s_num_stations == 0) {
             menu_cell_basic_draw(ctx, cell_layer, "Loading...", "Searching GPS", NULL);
             return;
         }
         station = &s_stations[cell_index->row];
+
         // Use integer math to avoid floating point (not supported on ARM Cortex-M3)
         // Show meters if < 1km, otherwise show km with one decimal
         if (station->distance_meters < 1000) {
@@ -55,7 +109,28 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
             int decimal = (station->distance_meters % 1000) / 100;
             snprintf(subtitle, sizeof(subtitle), "%d.%d km", km, decimal);
         }
-        menu_cell_basic_draw(ctx, cell_layer, station->name, subtitle, NULL);
+
+        const char *name_to_draw = station->name;
+
+        // Apply scroll offset if this row is selected
+        if (is_selected) {
+            int len = strlen(station->name);
+            if (len - MENU_CHARS_VISIBLE - s_scroll_offset > 0) {
+                name_to_draw += s_scroll_offset;
+                s_scrolling_required = true;
+            }
+        }
+
+        menu_cell_basic_draw(ctx, cell_layer, name_to_draw, subtitle, NULL);
+    }
+}
+
+static void menu_selection_changed_callback(MenuLayer *menu_layer, MenuIndex new_index, MenuIndex old_index, void *data) {
+    // Start scroll timer when selection changes
+    if (!s_menu_reloading) {
+        initiate_menu_scroll_timer();
+    } else {
+        s_menu_reloading = false;
     }
 }
 
@@ -96,6 +171,7 @@ static void window_load(Window *window) {
         .draw_header = menu_draw_header_callback,
         .draw_row = menu_draw_row_callback,
         .select_click = menu_select_callback,
+        .selection_changed = menu_selection_changed_callback,
     });
     menu_layer_set_click_config_onto_window(s_menu_layer, window);
     // Enable normal colors (helps with text rendering)
@@ -114,6 +190,10 @@ static void window_load(Window *window) {
 }
 
 static void window_unload(Window *window) {
+    if (s_scroll_timer) {
+        app_timer_cancel(s_scroll_timer);
+        s_scroll_timer = NULL;
+    }
     text_layer_destroy(s_status_layer);
     menu_layer_destroy(s_menu_layer);
 }

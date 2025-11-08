@@ -42,11 +42,15 @@ static int16_t menu_get_cell_height_callback(MenuLayer *menu_layer, MenuIndex *c
 }
 
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Drawing row %d, total connections: %d", cell_index->row, s_num_connections);
+
     if (s_num_connections == 0) {
+        APP_LOG(APP_LOG_LEVEL_INFO, "No connections, showing loading");
         menu_cell_basic_draw(ctx, cell_layer, "Loading...", "Fetching trains", NULL);
         return;
     }
 
+    APP_LOG(APP_LOG_LEVEL_INFO, "Drawing connection %d", cell_index->row);
     Connection *conn = &s_connections[cell_index->row];
     GRect bounds = layer_get_bounds(cell_layer);
 
@@ -118,6 +122,8 @@ static void refresh_timer_callback(void *data) {
 }
 
 static void request_connections(void) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Requesting connections: %s → %s",
+            s_connection.departure_station_id, s_connection.arrival_station_id);
     DictionaryIterator *iter;
     app_message_outbox_begin(&iter);
     dict_write_uint8(iter, MESSAGE_KEY_REQUEST_CONNECTIONS, 1);
@@ -127,6 +133,7 @@ static void request_connections(void) {
 }
 
 static void window_load(Window *window) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Connection detail window_load called");
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
 

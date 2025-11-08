@@ -265,6 +265,7 @@ static void window_unload(Window *window) {
 void station_select_window_push(StationSelectCallback callback) {
     s_callback = callback;
     s_num_stations = 0;
+    s_gps_search_active = false;  // Reset GPS search state
 
     if (!s_window) {
         s_window = window_create();

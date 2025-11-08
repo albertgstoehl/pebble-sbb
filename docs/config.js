@@ -2,14 +2,29 @@
     var favorites = [];
     var selectedStation = null;
     var searchTimeout = null;
+    var pebbleReady = false;
+
+    // Check for Pebble environment
+    function checkPebbleEnvironment() {
+        console.log('Checking Pebble environment...');
+        console.log('window.Pebble exists:', !!window.Pebble);
+        console.log('User agent:', navigator.userAgent);
+
+        if (window.Pebble) {
+            console.log('Pebble object found!');
+            pebbleReady = true;
+        }
+    }
 
     // Initialize on page load
     window.addEventListener('load', function() {
+        checkPebbleEnvironment();
+
         // Request current favorites from watch
         if (window.Pebble) {
             Pebble.addEventListener('ready', function() {
-                console.log('Config page ready');
-                // Watch will send favorites if any exist
+                console.log('Pebble ready event fired');
+                pebbleReady = true;
             });
         }
 
@@ -180,13 +195,18 @@
     }
 
     function handleSave() {
+        console.log('Save clicked. Pebble available:', !!window.Pebble);
+        console.log('pebbleReady flag:', pebbleReady);
+
         if (!window.Pebble) {
             // Testing mode - show what would be saved
-            var message = 'Testing Mode - Would save ' + favorites.length + ' favorites:\n\n';
+            var message = 'Testing Mode (No Pebble object found)\n\n';
+            message += 'Would save ' + favorites.length + ' favorites:\n\n';
             favorites.forEach(function(fav) {
                 message += '• ' + fav.label + ': ' + fav.name + '\n';
             });
-            message += '\nTo actually save, open this page from the Pebble app Settings button.';
+            message += '\nCheck console logs for debugging info.\n';
+            message += 'To actually save, open from Pebble app Settings.';
             alert(message);
             return;
         }

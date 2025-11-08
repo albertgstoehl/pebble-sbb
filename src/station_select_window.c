@@ -96,28 +96,24 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     bool is_selected = (cell_index->section == selected_index.section &&
                         cell_index->row == selected_index.row);
 
-    if (cell_index->section == 0 && s_num_favorites > 0) {
-        station = &s_favorites[cell_index->row];
-        const char *name_to_draw = station->name;
-
-        // Apply scroll offset if this row is selected
-        if (is_selected) {
-            int len = strlen(station->name);
-            if (len - MENU_CHARS_VISIBLE - s_scroll_offset > 0) {
-                name_to_draw += s_scroll_offset;
-                s_scrolling_required = true;
-            }
-        }
-        menu_cell_basic_draw(ctx, cell_layer, name_to_draw, NULL, NULL);
-    } else {
-        if (s_num_stations == 0) {
-            menu_cell_basic_draw(ctx, cell_layer, "Loading...", "Searching GPS", NULL);
+    if (cell_index->section == 0) {
+        // Section 0: "Stations near me" or GPS results
+        if (!s_gps_search_active && s_num_stations == 0) {
+            // Show "Stations near me" trigger
+            menu_cell_basic_draw(ctx, cell_layer, "Stations near me", "Search by GPS →", NULL);
             return;
         }
+
+        if (s_num_stations == 0) {
+            // GPS search active but no results yet
+            menu_cell_basic_draw(ctx, cell_layer, "Searching...", "Finding nearby stations", NULL);
+            return;
+        }
+
+        // Show GPS results
         station = &s_stations[cell_index->row];
 
-        // Use integer math to avoid floating point (not supported on ARM Cortex-M3)
-        // Show meters if < 1km, otherwise show km with one decimal
+        // Format distance
         if (station->distance_meters < 1000) {
             snprintf(subtitle, sizeof(subtitle), "%d m", station->distance_meters);
         } else {
@@ -128,7 +124,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 
         const char *name_to_draw = station->name;
 
-        // Apply scroll offset if this row is selected
+        // Apply scroll offset if selected
         if (is_selected) {
             int len = strlen(station->name);
             if (len - MENU_CHARS_VISIBLE - s_scroll_offset > 0) {
@@ -138,6 +134,29 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
         }
 
         menu_cell_basic_draw(ctx, cell_layer, name_to_draw, subtitle, NULL);
+    } else {
+        // Section 1: Favorites
+        if (s_num_favorites == 0) {
+            menu_cell_basic_draw(ctx, cell_layer,
+                               "No favorites",
+                               "Configure in Pebble app",
+                               NULL);
+            return;
+        }
+
+        station = &s_favorites[cell_index->row];
+        const char *name_to_draw = station->name;
+
+        // Apply scroll offset if selected
+        if (is_selected) {
+            int len = strlen(station->name);
+            if (len - MENU_CHARS_VISIBLE - s_scroll_offset > 0) {
+                name_to_draw += s_scroll_offset;
+                s_scrolling_required = true;
+            }
+        }
+
+        menu_cell_basic_draw(ctx, cell_layer, name_to_draw, NULL, NULL);
     }
 }
 

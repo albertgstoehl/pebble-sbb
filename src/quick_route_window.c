@@ -44,10 +44,13 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
 
     FavoriteDestination *fav = &s_favorites[cell_index->row];
 
+    APP_LOG(APP_LOG_LEVEL_INFO, "Quick route destination selected: %s", fav->label);
+
     if (s_callback) {
         s_callback(&s_departure_station, fav);
     }
 
+    APP_LOG(APP_LOG_LEVEL_INFO, "Popping quick route window");
     window_stack_pop(true);
 }
 

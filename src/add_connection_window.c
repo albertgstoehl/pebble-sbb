@@ -38,9 +38,9 @@ static void arrival_selected_callback(Station *station) {
 static void departure_selected_callback(Station *station) {
     s_departure_station = *station;
     s_departure_selected = true;
-    text_layer_set_text(s_instruction_layer, "Select arrival station");
 
-    // Push station select for arrival
+    // Push station select for arrival immediately
+    // (the instruction window will be hidden automatically when new window pushes)
     station_select_window_push(arrival_selected_callback);
 }
 

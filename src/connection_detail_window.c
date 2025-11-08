@@ -1,4 +1,5 @@
 #include "connection_detail_window.h"
+#include "journey_detail_window.h"
 
 static Window *s_window;
 static MenuLayer *s_menu_layer;

@@ -1,12 +1,14 @@
 // Mock mode for emulator testing (no network available)
-// Automatically disabled in test environment
-var MOCK_MODE = typeof jest === 'undefined';
+// Automatically disabled in test environment and on physical watch
+// Set to true manually if testing in emulator without network
+var MOCK_MODE = false;
 
 // Mock nearby stations data
+// Note: Umlauts removed to avoid encoding issues on Pebble watch
 var MOCK_NEARBY_STATIONS = [
-    { id: '8503000', name: 'Zürich HB', distance: 100 },
-    { id: '8503003', name: 'Zürich Stadelhofen', distance: 450 },
-    { id: '8503006', name: 'Zürich Hardbrücke', distance: 1200 },
+    { id: '8503000', name: 'Zuerich HB', distance: 100 },
+    { id: '8503003', name: 'Zuerich Stadelhofen', distance: 450 },
+    { id: '8503006', name: 'Zuerich Hardbruecke', distance: 1200 },
     { id: '8507000', name: 'Bern', distance: 2500 }
 ];
 
@@ -14,7 +16,7 @@ var MOCK_NEARBY_STATIONS = [
 var MOCK_CONNECTIONS = {
     sections: [
         {
-            departureStation: 'Zürich Stadelhofen',
+            departureStation: 'Zuerich Stadelhofen',
             arrivalStation: 'Bern',
             departureTime: Math.floor(Date.now() / 1000) + 300,
             arrivalTime: Math.floor(Date.now() / 1000) + 4500,

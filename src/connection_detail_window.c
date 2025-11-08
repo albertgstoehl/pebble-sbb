@@ -168,6 +168,8 @@ static void window_unload(Window *window) {
 }
 
 void connection_detail_window_push(SavedConnection *connection) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Connection detail window push: %s → %s",
+            connection->departure_station_name, connection->arrival_station_name);
     s_connection = *connection;
     s_num_connections = 0;
 
@@ -178,17 +180,22 @@ void connection_detail_window_push(SavedConnection *connection) {
             .unload = window_unload,
         });
     }
+    APP_LOG(APP_LOG_LEVEL_INFO, "Pushing connection detail window");
     window_stack_push(s_window, true);
 }
 
 void connection_detail_window_update_data(Connection *connections, int count) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Connection detail update: received %d connections", count);
     s_num_connections = count;
     if (count > 5) s_num_connections = 5;
 
     for (int i = 0; i < s_num_connections; i++) {
         s_connections[i] = connections[i];
+        APP_LOG(APP_LOG_LEVEL_INFO, "Connection %d: dep=%d arr=%d", i,
+                (int)connections[i].departure_time, (int)connections[i].arrival_time);
     }
 
+    APP_LOG(APP_LOG_LEVEL_INFO, "Reloading menu layer with %d connections", s_num_connections);
     menu_layer_reload_data(s_menu_layer);
     text_layer_set_text(s_status_layer, "Updated");
 }

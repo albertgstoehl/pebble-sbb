@@ -8,6 +8,61 @@
 static FavoriteDestination s_temp_favorites[MAX_FAVORITE_DESTINATIONS];
 static int s_temp_favorites_count = 0;
 
+// State for sending favorites to phone
+static FavoriteDestination s_send_favorites[MAX_FAVORITE_DESTINATIONS];
+static int s_send_favorites_count = 0;
+static int s_send_favorites_index = 0;
+static bool s_sending_favorites = false;
+
+static void send_next_favorite(void);
+
+static void send_favorites_outbox_sent_callback(DictionaryIterator *iterator, void *context) {
+    if (s_sending_favorites) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Favorite message sent, index %d of %d",
+                s_send_favorites_index, s_send_favorites_count);
+
+        // Send next favorite after a short delay
+        app_timer_register(50, (AppTimerCallback)send_next_favorite, NULL);
+    }
+}
+
+static void send_next_favorite(void) {
+    if (!s_sending_favorites) {
+        return;
+    }
+
+    if (s_send_favorites_index < s_send_favorites_count) {
+        DictionaryIterator *iter;
+        AppMessageResult result = app_message_outbox_begin(&iter);
+
+        if (result == APP_MSG_OK) {
+            FavoriteDestination *fav = &s_send_favorites[s_send_favorites_index];
+            dict_write_cstring(iter, MESSAGE_KEY_FAVORITE_DESTINATION_ID, fav->id);
+            dict_write_cstring(iter, MESSAGE_KEY_FAVORITE_DESTINATION_NAME, fav->name);
+            dict_write_cstring(iter, MESSAGE_KEY_FAVORITE_DESTINATION_LABEL, fav->label);
+
+            result = app_message_outbox_send();
+            if (result == APP_MSG_OK) {
+                APP_LOG(APP_LOG_LEVEL_DEBUG, "Sending favorite %d: %s",
+                        s_send_favorites_index + 1, fav->label);
+                s_send_favorites_index++;
+            } else {
+                APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to send favorite %d: %d",
+                        s_send_favorites_index, result);
+                s_sending_favorites = false;
+            }
+        } else {
+            APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to begin outbox for favorite %d: %d",
+                    s_send_favorites_index, result);
+            s_sending_favorites = false;
+        }
+    } else {
+        // All favorites sent
+        APP_LOG(APP_LOG_LEVEL_INFO, "Finished sending all %d favorites", s_send_favorites_count);
+        s_sending_favorites = false;
+    }
+}
+
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     // Check for request to send favorites back to phone
     Tuple *request_favorites_tuple = dict_find(iterator, MESSAGE_KEY_REQUEST_FAVORITES);
@@ -15,24 +70,29 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         APP_LOG(APP_LOG_LEVEL_INFO, "Received request for favorites");
 
         // Load favorites from storage
-        FavoriteDestination favorites[MAX_FAVORITE_DESTINATIONS];
-        int count = load_favorite_destinations(favorites);
+        s_send_favorites_count = load_favorite_destinations(s_send_favorites);
+        s_send_favorites_index = 0;
+        s_sending_favorites = true;
 
-        APP_LOG(APP_LOG_LEVEL_INFO, "Sending %d favorites to phone", count);
+        APP_LOG(APP_LOG_LEVEL_INFO, "Sending %d favorites to phone", s_send_favorites_count);
 
         // Send count first
         DictionaryIterator *iter;
-        app_message_outbox_begin(&iter);
-        dict_write_int8(iter, MESSAGE_KEY_NUM_FAVORITES, count);
-        app_message_outbox_send();
+        AppMessageResult result = app_message_outbox_begin(&iter);
+        if (result == APP_MSG_OK) {
+            dict_write_int8(iter, MESSAGE_KEY_NUM_FAVORITES, s_send_favorites_count);
+            result = app_message_outbox_send();
 
-        // Send each favorite
-        for (int i = 0; i < count; i++) {
-            app_message_outbox_begin(&iter);
-            dict_write_cstring(iter, MESSAGE_KEY_FAVORITE_DESTINATION_ID, favorites[i].id);
-            dict_write_cstring(iter, MESSAGE_KEY_FAVORITE_DESTINATION_NAME, favorites[i].name);
-            dict_write_cstring(iter, MESSAGE_KEY_FAVORITE_DESTINATION_LABEL, favorites[i].label);
-            app_message_outbox_send();
+            if (result == APP_MSG_OK) {
+                APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent NUM_FAVORITES successfully");
+                // First favorite will be sent via the outbox_sent callback
+            } else {
+                APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to send NUM_FAVORITES: %d", result);
+                s_sending_favorites = false;
+            }
+        } else {
+            APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to begin outbox for NUM_FAVORITES: %d", result);
+            s_sending_favorites = false;
         }
         return;
     }
@@ -140,6 +200,9 @@ static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResul
 
 static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Outbox sent successfully");
+
+    // Handle favorites sending continuation
+    send_favorites_outbox_sent_callback(iterator, context);
 }
 
 void app_message_init(void) {

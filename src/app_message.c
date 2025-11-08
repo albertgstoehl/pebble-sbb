@@ -2,6 +2,7 @@
 #include "station_select_window.h"
 #include "connection_detail_window.h"
 #include "data_models.h"
+#include "error_dialog.h"
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     // Check for station data
@@ -59,7 +60,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     Tuple *error_tuple = dict_find(iterator, MESSAGE_KEY_ERROR_MESSAGE);
     if (error_tuple) {
         APP_LOG(APP_LOG_LEVEL_ERROR, "Error from JS: %s", error_tuple->value->cstring);
-        // TODO: Show error dialog
+        show_error_dialog("Error", error_tuple->value->cstring);
         return;
     }
 }

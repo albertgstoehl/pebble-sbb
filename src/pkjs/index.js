@@ -67,8 +67,19 @@ Pebble.addEventListener('showConfiguration', function(event) {
     configPagePending = true;
 
     // Request current favorites from watch
+    console.log('Sending REQUEST_FAVORITES to watch');
     Pebble.sendAppMessage({
         'REQUEST_FAVORITES': 1
+    }, function() {
+        console.log('REQUEST_FAVORITES sent successfully');
+    }, function(e) {
+        console.error('Failed to send REQUEST_FAVORITES:', e);
+        // Open anyway after failure
+        setTimeout(function() {
+            if (configPagePending) {
+                openConfigPage();
+            }
+        }, 500);
     });
 
     // Fallback: open after 2 seconds if favorites don't arrive

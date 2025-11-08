@@ -1,8 +1,45 @@
+// Mock mode for emulator testing (no network available)
+var MOCK_MODE = true;  // Set to false for real device
+
+// Mock nearby stations data
+var MOCK_NEARBY_STATIONS = [
+    { id: '8503000', name: 'Zürich HB', distance: 100 },
+    { id: '8503003', name: 'Zürich Stadelhofen', distance: 450 },
+    { id: '8503006', name: 'Zürich Hardbrücke', distance: 1200 },
+    { id: '8507000', name: 'Bern', distance: 2500 }
+];
+
+// Mock connections data
+var MOCK_CONNECTIONS = {
+    sections: [
+        {
+            departureStation: 'Zürich Stadelhofen',
+            arrivalStation: 'Bern',
+            departureTime: Math.floor(Date.now() / 1000) + 300,
+            arrivalTime: Math.floor(Date.now() / 1000) + 4500,
+            platform: '7',
+            trainType: 'IC 712',
+            delayMinutes: 3
+        }
+    ],
+    numSections: 1,
+    departureTime: Math.floor(Date.now() / 1000) + 300,
+    arrivalTime: Math.floor(Date.now() / 1000) + 4500,
+    totalDelayMinutes: 3,
+    numChanges: 0
+};
+
 // SBB OpenData API endpoint
 var SBB_API_BASE = 'https://transport.opendata.ch/v1';
 
 // Fetch nearby stations based on coordinates
 function fetchNearbyStations(lat, lon, callback) {
+    if (MOCK_MODE) {
+        console.log('[MOCK] Returning mock nearby stations');
+        callback(null, MOCK_NEARBY_STATIONS);
+        return;
+    }
+
     var url = SBB_API_BASE + '/locations?x=' + lon + '&y=' + lat + '&type=station';
 
     fetch(url)
@@ -27,6 +64,12 @@ function fetchNearbyStations(lat, lon, callback) {
 
 // Fetch connections between two stations
 function fetchConnections(fromId, toId, callback) {
+    if (MOCK_MODE) {
+        console.log('[MOCK] Returning mock connections from', fromId, 'to', toId);
+        callback(null, [MOCK_CONNECTIONS]);
+        return;
+    }
+
     var url = SBB_API_BASE + '/connections?from=' + fromId + '&to=' + toId + '&limit=5';
 
     fetch(url)

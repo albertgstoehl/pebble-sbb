@@ -57,6 +57,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     char dep_time[6], arr_time[6];
     format_time(conn->departure_time, dep_time, sizeof(dep_time));
     format_time(conn->arrival_time, arr_time, sizeof(arr_time));
+    APP_LOG(APP_LOG_LEVEL_INFO, "Formatted times: %s - %s", dep_time, arr_time);
 
     // Small header: Train type | Platform
     char header[64];
@@ -88,6 +89,9 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
         snprintf(footer, sizeof(footer), "On time");
     }
 
+    APP_LOG(APP_LOG_LEVEL_INFO, "Drawing text - Header: '%s', Time: '%s', Footer: '%s'",
+            header, time_text, footer);
+
     // Draw three-line layout
     graphics_context_set_text_color(ctx, GColorBlack);
 
@@ -114,6 +118,8 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
                       GTextOverflowModeTrailingEllipsis,
                       GTextAlignmentLeft,
                       NULL);
+
+    APP_LOG(APP_LOG_LEVEL_INFO, "Finished drawing connection row");
 }
 
 static void refresh_timer_callback(void *data) {

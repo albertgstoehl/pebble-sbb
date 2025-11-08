@@ -97,7 +97,11 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     APP_LOG(APP_LOG_LEVEL_INFO, "Drawing text - Header: '%s', Time: '%s', Footer: '%s'",
             header, time_text, footer);
 
-    // Draw three-line layout
+    // Fill background with white first
+    graphics_context_set_fill_color(ctx, GColorWhite);
+    graphics_fill_rect(ctx, bounds, 0, GCornerNone);
+
+    // Draw three-line layout with black text
     graphics_context_set_text_color(ctx, GColorBlack);
 
     // Header (small font)

@@ -13,6 +13,7 @@ static Station s_favorites[MAX_FAVORITE_STATIONS];
 static int s_num_favorites = 0;
 static StationSelectCallback s_callback;
 static TextLayer *s_status_layer;
+static bool s_gps_search_active = false;
 
 // Text scrolling state
 static AppTimer *s_scroll_timer = NULL;
@@ -23,6 +24,11 @@ static bool s_menu_reloading = false;
 // Forward declarations
 static void scroll_menu_callback(void *data);
 static void initiate_menu_scroll_timer(void);
+
+// Convert FavoriteDestination to Station for display
+static Station favorite_to_station(FavoriteDestination *fav) {
+    return create_station(fav->id, fav->name, 0);  // distance = 0 for favorites
+}
 
 // Timer-based text scrolling implementation
 static void scroll_menu_callback(void *data) {

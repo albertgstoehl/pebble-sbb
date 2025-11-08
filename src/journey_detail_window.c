@@ -54,11 +54,104 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
         return;
     }
 
-    // Section row - for now just show basic text
+    // Section row - custom graphics drawing
     int section_idx = cell_index->row - 1;
     JourneySection *section = &s_connection.sections[section_idx];
+    GRect bounds = layer_get_bounds(cell_layer);
 
-    menu_cell_basic_draw(ctx, cell_layer, section->departure_station, section->train_type, NULL);
+    // Fill background
+    graphics_context_set_fill_color(ctx, GColorWhite);
+    graphics_fill_rect(ctx, bounds, 0, GCornerNone);
+    graphics_context_set_text_color(ctx, GColorBlack);
+
+    // Format times
+    char dep_time[6], arr_time[6];
+    struct tm *dep_tm = localtime(&section->departure_time);
+    struct tm *arr_tm = localtime(&section->arrival_time);
+
+    if (dep_tm && arr_tm) {
+        strftime(dep_time, sizeof(dep_time), "%H:%M", dep_tm);
+        strftime(arr_time, sizeof(arr_time), "%H:%M", arr_tm);
+    } else {
+        snprintf(dep_time, sizeof(dep_time), "??:??");
+        snprintf(arr_time, sizeof(arr_time), "??:??");
+    }
+
+    // Graphics positioning
+    GPoint circle_center = GPoint(8, 10);
+    int circle_radius = 4;
+    int line_start_y = circle_center.y + circle_radius;
+    int line_end_y = bounds.size.h - 10;
+
+    // Draw departure circle (filled)
+    graphics_context_set_fill_color(ctx, GColorBlack);
+    graphics_fill_circle(ctx, circle_center, circle_radius);
+
+    // Draw vertical connecting line (except for last section)
+    if (section_idx < s_connection.num_sections - 1) {
+        graphics_context_set_stroke_color(ctx, GColorBlack);
+        graphics_draw_line(ctx, GPoint(circle_center.x, line_start_y),
+                          GPoint(circle_center.x, line_end_y));
+    }
+
+    // Draw departure station + platform
+    static char dep_text[48];
+    if (section->platform[0] != '\0') {
+        snprintf(dep_text, sizeof(dep_text), "%s | Pl.%s",
+                 section->departure_station, section->platform);
+    } else {
+        snprintf(dep_text, sizeof(dep_text), "%s", section->departure_station);
+    }
+
+    graphics_draw_text(ctx, dep_text,
+                      fonts_get_system_font(FONT_KEY_GOTHIC_18),
+                      GRect(18, 0, bounds.size.w - 20, 20),
+                      GTextOverflowModeTrailingEllipsis,
+                      GTextAlignmentLeft,
+                      NULL);
+
+    // Draw train type + departure time
+    static char train_text[32];
+    snprintf(train_text, sizeof(train_text), "%s → %s",
+             section->train_type, dep_time);
+
+    graphics_draw_text(ctx, train_text,
+                      fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+                      GRect(18, 18, bounds.size.w - 20, 20),
+                      GTextOverflowModeTrailingEllipsis,
+                      GTextAlignmentLeft,
+                      NULL);
+
+    // Draw arrival station
+    circle_center = GPoint(8, 42);
+    graphics_context_set_stroke_color(ctx, GColorBlack);
+    graphics_draw_circle(ctx, circle_center, circle_radius);
+
+    static char arr_text[48];
+    snprintf(arr_text, sizeof(arr_text), "%s", section->arrival_station);
+
+    graphics_draw_text(ctx, arr_text,
+                      fonts_get_system_font(FONT_KEY_GOTHIC_18),
+                      GRect(18, 36, bounds.size.w - 20, 20),
+                      GTextOverflowModeTrailingEllipsis,
+                      GTextAlignmentLeft,
+                      NULL);
+
+    // Draw arrival time + delay
+    static char arr_info[32];
+    if (section->delay_minutes > 0) {
+        snprintf(arr_info, sizeof(arr_info), "Arr: %s | +%d min",
+                 arr_time, section->delay_minutes);
+    } else {
+        snprintf(arr_info, sizeof(arr_info), "Arr: %s", arr_time);
+    }
+
+    graphics_draw_text(ctx, arr_info,
+                      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+                      GRect(18, 52, bounds.size.w - 20, 16),
+                      GTextOverflowModeTrailingEllipsis,
+                      GTextAlignmentLeft,
+                      NULL);
 }
 
 static void window_load(Window *window) {

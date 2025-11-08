@@ -8,6 +8,7 @@ static TextLayer *s_instruction_layer;
 static Station s_departure_station;
 static Station s_arrival_station;
 static bool s_departure_selected = false;
+static AppTimer *s_arrival_timer = NULL;
 
 static void save_connection(void) {
     SavedConnection connections[MAX_SAVED_CONNECTIONS];
@@ -35,13 +36,17 @@ static void arrival_selected_callback(Station *station) {
     save_connection();
 }
 
+static void delayed_arrival_push(void *context) {
+    s_arrival_timer = NULL;
+    station_select_window_push(arrival_selected_callback);
+}
+
 static void departure_selected_callback(Station *station) {
     s_departure_station = *station;
     s_departure_selected = true;
 
-    // Push station select for arrival immediately
-    // (the instruction window will be hidden automatically when new window pushes)
-    station_select_window_push(arrival_selected_callback);
+    // Wait 100ms before pushing arrival window to avoid race condition
+    s_arrival_timer = app_timer_register(100, delayed_arrival_push, NULL);
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -66,6 +71,10 @@ static void window_load(Window *window) {
 }
 
 static void window_unload(Window *window) {
+    if (s_arrival_timer) {
+        app_timer_cancel(s_arrival_timer);
+        s_arrival_timer = NULL;
+    }
     text_layer_destroy(s_instruction_layer);
 }
 

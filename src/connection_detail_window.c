@@ -37,6 +37,10 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
     menu_cell_basic_header_draw(ctx, cell_layer, header);
 }
 
+static int16_t menu_get_cell_height_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    return 68;  // Taller cells for three-line layout
+}
+
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
     if (s_num_connections == 0) {
         menu_cell_basic_draw(ctx, cell_layer, "Loading...", "Fetching trains", NULL);
@@ -44,37 +48,68 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     }
 
     Connection *conn = &s_connections[cell_index->row];
-    static char title[64];
-    static char subtitle[64];
+    GRect bounds = layer_get_bounds(cell_layer);
 
     char dep_time[6], arr_time[6];
     format_time(conn->departure_time, dep_time, sizeof(dep_time));
     format_time(conn->arrival_time, arr_time, sizeof(arr_time));
 
-    // Format: "14:32 → 15:47 | 1 chg | Pl.7"
+    // Small header: Train type | Platform
+    char header[64];
+    if (conn->sections[0].platform[0] != '\0') {
+        snprintf(header, sizeof(header), "%s | Pl.%s",
+                 conn->sections[0].train_type,
+                 conn->sections[0].platform);
+    } else {
+        snprintf(header, sizeof(header), "%s", conn->sections[0].train_type);
+    }
+
+    // Large middle: Time
+    char time_text[32];
     if (conn->num_changes > 0) {
-        snprintf(title, sizeof(title), "%s → %s | %d chg",
+        snprintf(time_text, sizeof(time_text), "%s → %s | %d chg",
                  dep_time, arr_time, conn->num_changes);
     } else {
-        snprintf(title, sizeof(title), "%s → %s | Direct",
+        snprintf(time_text, sizeof(time_text), "%s → %s",
                  dep_time, arr_time);
     }
 
-    // Format subtitle with delay info
-    if (conn->sections[0].platform[0] != '\0') {
-        if (conn->total_delay_minutes > 0) {
-            snprintf(subtitle, sizeof(subtitle), "Pl.%s | %s | +%d min",
-                     conn->sections[0].platform,
-                     conn->sections[0].train_type,
-                     conn->total_delay_minutes);
-        } else {
-            snprintf(subtitle, sizeof(subtitle), "Pl.%s | %s | ✓",
-                     conn->sections[0].platform,
-                     conn->sections[0].train_type);
-        }
+    // Small footer: Delay status
+    char footer[32];
+    if (conn->total_delay_minutes > 60) {
+        snprintf(footer, sizeof(footer), "+60+ min delay");
+    } else if (conn->total_delay_minutes > 0) {
+        snprintf(footer, sizeof(footer), "+%d min delay", conn->total_delay_minutes);
+    } else {
+        snprintf(footer, sizeof(footer), "On time ✓");
     }
 
-    menu_cell_basic_draw(ctx, cell_layer, title, subtitle, NULL);
+    // Draw three-line layout
+    graphics_context_set_text_color(ctx, GColorBlack);
+
+    // Header (small font)
+    graphics_draw_text(ctx, header,
+                      fonts_get_system_font(FONT_KEY_GOTHIC_18),
+                      GRect(4, 2, bounds.size.w - 8, 20),
+                      GTextOverflowModeTrailingEllipsis,
+                      GTextAlignmentLeft,
+                      NULL);
+
+    // Time (large font)
+    graphics_draw_text(ctx, time_text,
+                      fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                      GRect(4, 20, bounds.size.w - 8, 28),
+                      GTextOverflowModeTrailingEllipsis,
+                      GTextAlignmentLeft,
+                      NULL);
+
+    // Footer (small font)
+    graphics_draw_text(ctx, footer,
+                      fonts_get_system_font(FONT_KEY_GOTHIC_18),
+                      GRect(4, 46, bounds.size.w - 8, 20),
+                      GTextOverflowModeTrailingEllipsis,
+                      GTextAlignmentLeft,
+                      NULL);
 }
 
 static void refresh_timer_callback(void *data) {
@@ -109,6 +144,7 @@ static void window_load(Window *window) {
         .get_num_sections = menu_get_num_sections_callback,
         .get_num_rows = menu_get_num_rows_callback,
         .get_header_height = menu_get_header_height_callback,
+        .get_cell_height = menu_get_cell_height_callback,
         .draw_header = menu_draw_header_callback,
         .draw_row = menu_draw_row_callback,
     });

@@ -3,6 +3,10 @@
 #include "connection_detail_window.h"
 #include "data_models.h"
 #include "error_dialog.h"
+#include "persistence.h"
+
+static FavoriteDestination s_temp_favorites[MAX_FAVORITE_DESTINATIONS];
+static int s_temp_favorites_count = 0;
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     // Check for station data
@@ -20,7 +24,40 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         return;
     }
 
+    // Check for favorite destination data
+    Tuple *fav_id_tuple = dict_find(iterator, MESSAGE_KEY_FAVORITE_DESTINATION_ID);
+    Tuple *fav_name_tuple = dict_find(iterator, MESSAGE_KEY_FAVORITE_DESTINATION_NAME);
+    Tuple *fav_label_tuple = dict_find(iterator, MESSAGE_KEY_FAVORITE_DESTINATION_LABEL);
+    Tuple *num_favorites_tuple = dict_find(iterator, MESSAGE_KEY_NUM_FAVORITES);
+
+    if (num_favorites_tuple) {
+        // Start receiving new favorites list
+        s_temp_favorites_count = 0;
+        APP_LOG(APP_LOG_LEVEL_INFO, "Receiving %d favorites", num_favorites_tuple->value->int8);
+        return;
+    }
+
+    if (fav_id_tuple && fav_name_tuple && fav_label_tuple) {
+        // Receive individual favorite
+        if (s_temp_favorites_count < MAX_FAVORITE_DESTINATIONS) {
+            FavoriteDestination fav = create_favorite_destination(
+                fav_id_tuple->value->cstring,
+                fav_name_tuple->value->cstring,
+                fav_label_tuple->value->cstring
+            );
+            s_temp_favorites[s_temp_favorites_count++] = fav;
+            APP_LOG(APP_LOG_LEVEL_INFO, "Received favorite: %s - %s",
+                    fav.label, fav.name);
+
+            // If we've received all expected favorites, save them
+            save_favorite_destinations(s_temp_favorites, s_temp_favorites_count);
+        }
+        return;
+    }
+
     // Check for connection data
+    // Note: Quick route feature reuses this same CONNECTION_DATA message type
+    // No separate REQUEST_QUICK_ROUTE handler needed - same flow as regular connections
     Tuple *conn_data_tuple = dict_find(iterator, MESSAGE_KEY_CONNECTION_DATA);
     if (conn_data_tuple) {
         Connection conn;

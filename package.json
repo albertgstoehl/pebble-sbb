@@ -30,6 +30,9 @@
     "watchapp": {
       "watchface": false
     },
+    "capabilities": [
+      "configurable"
+    ],
     "messageKeys": {
       "REQUEST_CONNECTIONS": 0,
       "REQUEST_NEARBY_STATIONS": 1,
@@ -46,7 +49,12 @@
       "TRAIN_TYPE": 33,
       "DELAY_MINUTES": 34,
       "NUM_CHANGES": 35,
-      "ERROR_MESSAGE": 40
+      "ERROR_MESSAGE": 40,
+      "FAVORITE_DESTINATION_ID": 50,
+      "FAVORITE_DESTINATION_NAME": 51,
+      "FAVORITE_DESTINATION_LABEL": 52,
+      "REQUEST_QUICK_ROUTE": 53,
+      "NUM_FAVORITES": 54
     },
     "resources": {
       "media": []

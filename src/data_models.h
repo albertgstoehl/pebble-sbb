@@ -17,6 +17,15 @@ typedef struct {
     int distance_meters;
 } Station;
 
+// Favorite destination structure
+typedef struct {
+    char id[MAX_STATION_ID_LENGTH];
+    char name[MAX_STATION_NAME_LENGTH];
+    char label[16];  // "Home", "Work", "Gym", etc.
+} FavoriteDestination;
+
+#define MAX_FAVORITE_DESTINATIONS 10
+
 // Saved connection structure
 typedef struct {
     char departure_station_id[MAX_STATION_ID_LENGTH];
@@ -52,3 +61,6 @@ SavedConnection create_saved_connection(
     const char *arr_id, const char *arr_name
 );
 Station create_station(const char *id, const char *name, int distance);
+FavoriteDestination create_favorite_destination(
+    const char *id, const char *name, const char *label
+);

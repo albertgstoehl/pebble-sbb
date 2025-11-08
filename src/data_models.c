@@ -40,3 +40,26 @@ Station create_station(const char *id, const char *name, int distance) {
     station.distance_meters = distance;
     return station;
 }
+
+FavoriteDestination create_favorite_destination(
+    const char *id, const char *name, const char *label
+) {
+    FavoriteDestination favorite;
+    memset(&favorite, 0, sizeof(FavoriteDestination));
+
+    // Validate NULL pointers
+    if (!id || !name || !label) {
+        return favorite;
+    }
+
+    strncpy(favorite.id, id, MAX_STATION_ID_LENGTH - 1);
+    favorite.id[MAX_STATION_ID_LENGTH - 1] = '\0';
+
+    strncpy(favorite.name, name, MAX_STATION_NAME_LENGTH - 1);
+    favorite.name[MAX_STATION_NAME_LENGTH - 1] = '\0';
+
+    strncpy(favorite.label, label, 15);
+    favorite.label[15] = '\0';
+
+    return favorite;
+}

@@ -1,6 +1,7 @@
 var messageHandler = require('./message_handler');
 var configFavorites = [];
 var configFavoritesExpected = 0;
+var configPagePending = false;
 
 Pebble.addEventListener('ready', function(event) {
     console.log('PebbleKit JS ready!');
@@ -14,6 +15,11 @@ Pebble.addEventListener('appmessage', function(event) {
         console.log('Expecting ' + message.NUM_FAVORITES + ' favorites from watch');
         configFavoritesExpected = message.NUM_FAVORITES;
         configFavorites = [];
+
+        // If expecting 0 favorites and config page pending, open immediately
+        if (configFavoritesExpected === 0 && configPagePending) {
+            openConfigPage();
+        }
         return;
     }
 
@@ -27,6 +33,11 @@ Pebble.addEventListener('appmessage', function(event) {
             label: message.FAVORITE_DESTINATION_LABEL
         });
         console.log('Received favorite: ' + message.FAVORITE_DESTINATION_LABEL);
+
+        // If we have all favorites and config page pending, open it
+        if (configFavorites.length === configFavoritesExpected && configPagePending) {
+            openConfigPage();
+        }
         return;
     }
 
@@ -34,25 +45,39 @@ Pebble.addEventListener('appmessage', function(event) {
     messageHandler.handleAppMessage(event);
 });
 
+function openConfigPage() {
+    configPagePending = false;
+
+    var url = 'https://albertgstoehl.github.io/pebble-sbb/config.html';
+    if (configFavorites.length > 0) {
+        url += '?favorites=' + encodeURIComponent(JSON.stringify(configFavorites));
+        console.log('Opening config URL with ' + configFavorites.length + ' favorites');
+    } else {
+        console.log('Opening config URL (no favorites)');
+    }
+    Pebble.openURL(url);
+}
+
 Pebble.addEventListener('showConfiguration', function(event) {
     console.log('Showing configuration page');
+
+    // Reset state
+    configFavorites = [];
+    configFavoritesExpected = 0;
+    configPagePending = true;
 
     // Request current favorites from watch
     Pebble.sendAppMessage({
         'REQUEST_FAVORITES': 1
     });
 
-    // Build URL with existing favorites as query param
-    var url = 'https://albertgstoehl.github.io/pebble-sbb/config.html';
-
-    // Add favorites to URL once received (after small delay)
+    // Fallback: open after 2 seconds if favorites don't arrive
     setTimeout(function() {
-        if (configFavorites.length > 0) {
-            url += '?favorites=' + encodeURIComponent(JSON.stringify(configFavorites));
+        if (configPagePending) {
+            console.log('Timeout waiting for favorites, opening anyway');
+            openConfigPage();
         }
-        console.log('Opening config URL:', url);
-        Pebble.openURL(url);
-    }, 500);
+    }, 2000);
 });
 
 Pebble.addEventListener('webviewclosed', function(event) {

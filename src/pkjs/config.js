@@ -211,25 +211,17 @@
             return;
         }
 
-        // Send number of favorites first
-        Pebble.sendAppMessage({
-            'NUM_FAVORITES': favorites.length
-        });
+        console.log('Saving favorites to watch...');
 
-        // Send each favorite
-        favorites.forEach(function(fav) {
-            Pebble.sendAppMessage({
-                'FAVORITE_DESTINATION_ID': fav.id,
-                'FAVORITE_DESTINATION_NAME': fav.name,
-                'FAVORITE_DESTINATION_LABEL': fav.label
-            });
-        });
+        // Encode favorites as JSON and pass back via URL
+        var configData = {
+            favorites: favorites
+        };
 
-        alert('Settings saved to watch!');
+        var return_to = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(configData));
+        console.log('Closing with data:', return_to);
 
-        // Close config page
-        setTimeout(function() {
-            window.location.href = 'pebblejs://close';
-        }, 1000);
+        // Close and return data
+        window.location.href = return_to;
     }
 })();

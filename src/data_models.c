@@ -47,6 +47,11 @@ FavoriteDestination create_favorite_destination(
     FavoriteDestination favorite;
     memset(&favorite, 0, sizeof(FavoriteDestination));
 
+    // Validate NULL pointers
+    if (!id || !name || !label) {
+        return favorite;
+    }
+
     strncpy(favorite.id, id, MAX_STATION_ID_LENGTH - 1);
     favorite.id[MAX_STATION_ID_LENGTH - 1] = '\0';
 

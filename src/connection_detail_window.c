@@ -31,7 +31,7 @@ static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t s
 
 static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
     static char header[64];
-    snprintf(header, sizeof(header), "%s → %s",
+    snprintf(header, sizeof(header), "%s - %s",
              s_connection.departure_station_name,
              s_connection.arrival_station_name);
     menu_cell_basic_header_draw(ctx, cell_layer, header);
@@ -71,10 +71,10 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     // Large middle: Time
     char time_text[32];
     if (conn->num_changes > 0) {
-        snprintf(time_text, sizeof(time_text), "%s → %s | %d chg",
+        snprintf(time_text, sizeof(time_text), "%s - %s | %d chg",
                  dep_time, arr_time, conn->num_changes);
     } else {
-        snprintf(time_text, sizeof(time_text), "%s → %s",
+        snprintf(time_text, sizeof(time_text), "%s - %s",
                  dep_time, arr_time);
     }
 
@@ -85,7 +85,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     } else if (conn->total_delay_minutes > 0) {
         snprintf(footer, sizeof(footer), "+%d min delay", conn->total_delay_minutes);
     } else {
-        snprintf(footer, sizeof(footer), "On time ✓");
+        snprintf(footer, sizeof(footer), "On time");
     }
 
     // Draw three-line layout

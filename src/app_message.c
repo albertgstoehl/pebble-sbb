@@ -56,6 +56,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     }
 
     // Check for connection data
+    // Note: Quick route feature reuses this same CONNECTION_DATA message type
+    // No separate REQUEST_QUICK_ROUTE handler needed - same flow as regular connections
     Tuple *conn_data_tuple = dict_find(iterator, MESSAGE_KEY_CONNECTION_DATA);
     if (conn_data_tuple) {
         Connection conn;

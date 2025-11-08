@@ -204,14 +204,16 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
         selected = &s_favorites[cell_index->row];
     }
 
-    APP_LOG(APP_LOG_LEVEL_INFO, "Station selected: %s, calling callback and popping window", selected->name);
+    APP_LOG(APP_LOG_LEVEL_INFO, "Station selected: %s, popping window then calling callback", selected->name);
 
+    // Pop this window first
+    APP_LOG(APP_LOG_LEVEL_INFO, "Popping station select window");
+    window_stack_pop(true);
+
+    // Then call callback to push next window
     if (s_callback) {
         s_callback(selected);
     }
-
-    APP_LOG(APP_LOG_LEVEL_INFO, "Popping station select window");
-    window_stack_pop(true);
 }
 
 static void window_load(Window *window) {

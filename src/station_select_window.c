@@ -47,9 +47,14 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
         }
         station = &s_stations[cell_index->row];
         // Use integer math to avoid floating point (not supported on ARM Cortex-M3)
-        int km = station->distance_meters / 1000;
-        int decimal = (station->distance_meters % 1000) / 100;
-        snprintf(subtitle, sizeof(subtitle), "%d.%d km", km, decimal);
+        // Show meters if < 1km, otherwise show km with one decimal
+        if (station->distance_meters < 1000) {
+            snprintf(subtitle, sizeof(subtitle), "%d m", station->distance_meters);
+        } else {
+            int km = station->distance_meters / 1000;
+            int decimal = (station->distance_meters % 1000) / 100;
+            snprintf(subtitle, sizeof(subtitle), "%d.%d km", km, decimal);
+        }
         menu_cell_basic_draw(ctx, cell_layer, station->name, subtitle, NULL);
     }
 }
@@ -93,6 +98,9 @@ static void window_load(Window *window) {
         .select_click = menu_select_callback,
     });
     menu_layer_set_click_config_onto_window(s_menu_layer, window);
+    // Enable normal colors (helps with text rendering)
+    menu_layer_set_normal_colors(s_menu_layer, GColorWhite, GColorBlack);
+    menu_layer_set_highlight_colors(s_menu_layer, GColorBlack, GColorWhite);
     layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
 
     // Load favorites

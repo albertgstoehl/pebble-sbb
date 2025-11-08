@@ -53,6 +53,17 @@ function requestNearbyStations(callback) {
     );
 }
 
+function _clearCache() {
+    lastKnownStations = [];
+    lastGPSTime = 0;
+}
+
+function _expireCache() {
+    lastGPSTime = 0;
+}
+
 module.exports = {
-    requestNearbyStations: requestNearbyStations
+    requestNearbyStations: requestNearbyStations,
+    _clearCache: _clearCache,
+    _expireCache: _expireCache
 };

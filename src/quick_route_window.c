@@ -69,6 +69,7 @@ static void window_load(Window *window) {
 
     // Load favorites
     s_num_favorites = load_favorite_destinations(s_favorites);
+    APP_LOG(APP_LOG_LEVEL_INFO, "Quick route window loaded with %d favorites", s_num_favorites);
 }
 
 static void window_unload(Window *window) {

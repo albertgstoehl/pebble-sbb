@@ -73,7 +73,9 @@ static void quick_route_selected_callback(Station *departure, FavoriteDestinatio
 }
 
 static void quick_route_departure_selected(Station *station) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Departure selected: %s", station->name);
     quick_route_window_push(station, quick_route_selected_callback);
+    APP_LOG(APP_LOG_LEVEL_INFO, "Quick route window pushed");
 }
 
 static void start_quick_route(void) {

@@ -263,6 +263,7 @@ static void window_unload(Window *window) {
 }
 
 void station_select_window_push(StationSelectCallback callback) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Station select window push called");
     s_callback = callback;
     s_num_stations = 0;
     s_gps_search_active = false;  // Reset GPS search state

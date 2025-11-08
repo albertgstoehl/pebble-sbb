@@ -100,7 +100,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
         // Section 0: "Stations near me" or GPS results
         if (!s_gps_search_active && s_num_stations == 0) {
             // Show "Stations near me" trigger
-            menu_cell_basic_draw(ctx, cell_layer, "Stations near me", "Search by GPS →", NULL);
+            menu_cell_basic_draw(ctx, cell_layer, "Stations near me", "Search by GPS", NULL);
             return;
         }
 

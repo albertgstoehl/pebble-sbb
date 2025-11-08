@@ -167,7 +167,14 @@ static void window_load(Window *window) {
         .draw_row = menu_draw_row_callback,
     });
     menu_layer_set_click_config_onto_window(s_menu_layer, window);
+
+    // Set menu colors explicitly
+    menu_layer_set_normal_colors(s_menu_layer, GColorWhite, GColorBlack);
+    menu_layer_set_highlight_colors(s_menu_layer, GColorBlack, GColorWhite);
+
     layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
+
+    APP_LOG(APP_LOG_LEVEL_INFO, "Menu layer configured with colors");
 
     // Request initial data
     request_connections();

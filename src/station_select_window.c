@@ -46,7 +46,10 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
             return;
         }
         station = &s_stations[cell_index->row];
-        snprintf(subtitle, sizeof(subtitle), "%.1f km", station->distance_meters / 1000.0);
+        // Use integer math to avoid floating point (not supported on ARM Cortex-M3)
+        int km = station->distance_meters / 1000;
+        int decimal = (station->distance_meters % 1000) / 100;
+        snprintf(subtitle, sizeof(subtitle), "%d.%d km", km, decimal);
         menu_cell_basic_draw(ctx, cell_layer, station->name, subtitle, NULL);
     }
 }

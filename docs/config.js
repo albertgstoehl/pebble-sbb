@@ -181,7 +181,13 @@
 
     function handleSave() {
         if (!window.Pebble) {
-            alert('Not running in Pebble app');
+            // Testing mode - show what would be saved
+            var message = 'Testing Mode - Would save ' + favorites.length + ' favorites:\n\n';
+            favorites.forEach(function(fav) {
+                message += '• ' + fav.label + ': ' + fav.name + '\n';
+            });
+            message += '\nTo actually save, open this page from the Pebble app Settings button.';
+            alert(message);
             return;
         }
 

@@ -53,3 +53,26 @@ bool is_connection_limit_reached(void) {
     int count = persist_read_int(PERSIST_KEY_NUM_CONNECTIONS);
     return count >= MAX_SAVED_CONNECTIONS;
 }
+
+void save_favorite_destinations(FavoriteDestination *favorites, int count) {
+    if (count > MAX_FAVORITE_DESTINATIONS) {
+        count = MAX_FAVORITE_DESTINATIONS;
+    }
+    persist_write_int(PERSIST_KEY_NUM_FAVORITE_DESTINATIONS, count);
+    if (count > 0) {
+        persist_write_data(PERSIST_KEY_FAVORITE_DESTINATIONS, favorites,
+                          sizeof(FavoriteDestination) * count);
+    }
+}
+
+int load_favorite_destinations(FavoriteDestination *favorites) {
+    if (!persist_exists(PERSIST_KEY_NUM_FAVORITE_DESTINATIONS)) {
+        return 0;
+    }
+    int count = persist_read_int(PERSIST_KEY_NUM_FAVORITE_DESTINATIONS);
+    if (count > 0 && persist_exists(PERSIST_KEY_FAVORITE_DESTINATIONS)) {
+        persist_read_data(PERSIST_KEY_FAVORITE_DESTINATIONS, favorites,
+                         sizeof(FavoriteDestination) * count);
+    }
+    return count;
+}

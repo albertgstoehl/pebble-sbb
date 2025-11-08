@@ -54,7 +54,8 @@
       "FAVORITE_DESTINATION_NAME": 51,
       "FAVORITE_DESTINATION_LABEL": 52,
       "REQUEST_QUICK_ROUTE": 53,
-      "NUM_FAVORITES": 54
+      "NUM_FAVORITES": 54,
+      "REQUEST_FAVORITES": 55
     },
     "resources": {
       "media": []

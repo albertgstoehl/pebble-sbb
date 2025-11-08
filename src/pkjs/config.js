@@ -20,12 +20,15 @@
     window.addEventListener('load', function() {
         checkPebbleEnvironment();
 
-        // Request current favorites from watch
-        if (window.Pebble) {
-            Pebble.addEventListener('ready', function() {
-                console.log('Pebble ready event fired');
-                pebbleReady = true;
-            });
+        // Load existing favorites from URL parameter
+        var existingFavorites = getQueryParam('favorites');
+        if (existingFavorites) {
+            try {
+                favorites = JSON.parse(existingFavorites);
+                console.log('Loaded ' + favorites.length + ' existing favorites');
+            } catch (e) {
+                console.error('Error parsing favorites:', e);
+            }
         }
 
         // Set up event listeners

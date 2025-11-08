@@ -9,6 +9,34 @@ static FavoriteDestination s_temp_favorites[MAX_FAVORITE_DESTINATIONS];
 static int s_temp_favorites_count = 0;
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
+    // Check for request to send favorites back to phone
+    Tuple *request_favorites_tuple = dict_find(iterator, MESSAGE_KEY_REQUEST_FAVORITES);
+    if (request_favorites_tuple) {
+        APP_LOG(APP_LOG_LEVEL_INFO, "Received request for favorites");
+
+        // Load favorites from storage
+        FavoriteDestination favorites[MAX_FAVORITE_DESTINATIONS];
+        int count = load_favorite_destinations(favorites);
+
+        APP_LOG(APP_LOG_LEVEL_INFO, "Sending %d favorites to phone", count);
+
+        // Send count first
+        DictionaryIterator *iter;
+        app_message_outbox_begin(&iter);
+        dict_write_int8(iter, MESSAGE_KEY_NUM_FAVORITES, count);
+        app_message_outbox_send();
+
+        // Send each favorite
+        for (int i = 0; i < count; i++) {
+            app_message_outbox_begin(&iter);
+            dict_write_cstring(iter, MESSAGE_KEY_FAVORITE_DESTINATION_ID, favorites[i].id);
+            dict_write_cstring(iter, MESSAGE_KEY_FAVORITE_DESTINATION_NAME, favorites[i].name);
+            dict_write_cstring(iter, MESSAGE_KEY_FAVORITE_DESTINATION_LABEL, favorites[i].label);
+            app_message_outbox_send();
+        }
+        return;
+    }
+
     // Check for station data
     Tuple *station_name_tuple = dict_find(iterator, MESSAGE_KEY_STATION_NAME);
     Tuple *station_id_tuple = dict_find(iterator, MESSAGE_KEY_STATION_ID);

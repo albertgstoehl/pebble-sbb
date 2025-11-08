@@ -3,11 +3,18 @@
 #include "persistence.h"
 #include "add_connection_window.h"
 #include "connection_detail_window.h"
+#include "quick_route_window.h"
+#include "station_select_window.h"
 
 static Window *s_window;
 static MenuLayer *s_menu_layer;
 static SavedConnection s_connections[MAX_SAVED_CONNECTIONS];
 static int s_num_connections = 0;
+
+// Forward declarations
+static void quick_route_selected_callback(Station *departure, FavoriteDestination *destination);
+static void quick_route_departure_selected(Station *station);
+static void start_quick_route(void);
 
 // Menu callbacks
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
@@ -48,6 +55,40 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
     connection_detail_window_push(conn);
 }
 
+// Quick route functions
+static void quick_route_selected_callback(Station *departure, FavoriteDestination *destination) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Quick route: %s to %s",
+            departure->name, destination->label);
+
+    // Create temporary saved connection for display
+    SavedConnection temp_connection = create_saved_connection(
+        departure->id,
+        departure->name,
+        destination->id,
+        destination->name
+    );
+
+    // Push connection detail window (will request data via AppMessage)
+    connection_detail_window_push(&temp_connection);
+}
+
+static void quick_route_departure_selected(Station *station) {
+    quick_route_window_push(station, quick_route_selected_callback);
+}
+
+static void start_quick_route(void) {
+    station_select_window_push(quick_route_departure_selected);
+}
+
+// Click config provider
+static void up_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+    start_quick_route();
+}
+
+static void click_config_provider(void *context) {
+    window_long_click_subscribe(BUTTON_ID_UP, 700, up_long_click_handler, NULL);
+}
+
 // Window lifecycle
 static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
@@ -64,6 +105,9 @@ static void window_load(Window *window) {
     });
     menu_layer_set_click_config_onto_window(s_menu_layer, window);
     layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
+
+    // Register long-press handler for quick route
+    window_set_click_config_provider(s_window, click_config_provider);
 
     // Load saved connections
     s_num_connections = load_connections(s_connections);

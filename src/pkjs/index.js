@@ -65,25 +65,38 @@ Pebble.addEventListener('webviewclosed', function(event) {
 
     try {
         var configData = JSON.parse(decodeURIComponent(event.response));
-        console.log('Received config data:', configData);
+        console.log('Received config data:', JSON.stringify(configData));
 
-        // Send favorites to watch
+        // Send favorites to watch with delays between messages
         if (configData.favorites && configData.favorites.length > 0) {
+            console.log('Sending ' + configData.favorites.length + ' favorites to watch');
+
             // Send number of favorites first
             Pebble.sendAppMessage({
                 'NUM_FAVORITES': configData.favorites.length
+            }, function() {
+                console.log('Sent NUM_FAVORITES successfully');
+            }, function(e) {
+                console.error('Failed to send NUM_FAVORITES:', e);
             });
 
-            // Send each favorite
-            configData.favorites.forEach(function(fav) {
-                Pebble.sendAppMessage({
-                    'FAVORITE_DESTINATION_ID': fav.id,
-                    'FAVORITE_DESTINATION_NAME': fav.name,
-                    'FAVORITE_DESTINATION_LABEL': fav.label
-                });
+            // Send each favorite with delay
+            configData.favorites.forEach(function(fav, index) {
+                setTimeout(function() {
+                    console.log('Sending favorite ' + (index + 1) + ':', fav.label);
+                    Pebble.sendAppMessage({
+                        'FAVORITE_DESTINATION_ID': fav.id,
+                        'FAVORITE_DESTINATION_NAME': fav.name,
+                        'FAVORITE_DESTINATION_LABEL': fav.label
+                    }, function() {
+                        console.log('Successfully sent: ' + fav.label);
+                    }, function(e) {
+                        console.error('Failed to send ' + fav.label + ':', e);
+                    });
+                }, (index + 1) * 100); // 100ms delay between each
             });
-
-            console.log('Sent ' + configData.favorites.length + ' favorites to watch');
+        } else {
+            console.log('No favorites to send');
         }
     } catch (error) {
         console.error('Error parsing config data:', error);

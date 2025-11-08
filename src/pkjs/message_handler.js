@@ -22,6 +22,12 @@ function handleNearbyStationsRequest() {
             return;
         }
 
+        // Check if no stations were found
+        if (!stations || stations.length === 0) {
+            sendError('No stations found nearby. Try favorites.');
+            return;
+        }
+
         // Send stations one at a time to avoid message size limits
         stations.forEach(function(station, index) {
             Pebble.sendAppMessage({

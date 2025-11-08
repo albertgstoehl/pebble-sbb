@@ -70,6 +70,10 @@ int load_favorite_destinations(FavoriteDestination *favorites) {
         return 0;
     }
     int count = persist_read_int(PERSIST_KEY_NUM_FAVORITE_DESTINATIONS);
+    // Validate count to prevent buffer overflow
+    if (count < 0 || count > MAX_FAVORITE_DESTINATIONS) {
+        return 0;
+    }
     if (count > 0 && persist_exists(PERSIST_KEY_FAVORITE_DESTINATIONS)) {
         persist_read_data(PERSIST_KEY_FAVORITE_DESTINATIONS, favorites,
                          sizeof(FavoriteDestination) * count);

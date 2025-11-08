@@ -172,11 +172,36 @@ static void menu_selection_changed_callback(MenuLayer *menu_layer, MenuIndex new
 static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     Station *selected;
 
-    if (cell_index->section == 0 && s_num_favorites > 0) {
-        selected = &s_favorites[cell_index->row];
-    } else {
-        if (s_num_stations == 0) return;
+    if (cell_index->section == 0) {
+        // Section 0: "Stations near me" or GPS results
+        if (!s_gps_search_active && s_num_stations == 0) {
+            // User selected "Stations near me" - trigger GPS
+            s_gps_search_active = true;
+            menu_layer_reload_data(s_menu_layer);
+
+            // Request nearby stations via AppMessage
+            DictionaryIterator *iter;
+            app_message_outbox_begin(&iter);
+            dict_write_uint8(iter, MESSAGE_KEY_REQUEST_NEARBY_STATIONS, 1);
+            app_message_outbox_send();
+
+            text_layer_set_text(s_status_layer, "Searching nearby...");
+            return;
+        }
+
+        if (s_num_stations == 0) {
+            // Still loading, ignore selection
+            return;
+        }
+
+        // GPS result selected
         selected = &s_stations[cell_index->row];
+    } else {
+        // Section 1: Favorite selected
+        if (s_num_favorites == 0) {
+            return;
+        }
+        selected = &s_favorites[cell_index->row];
     }
 
     if (s_callback) {

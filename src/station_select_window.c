@@ -78,10 +78,14 @@ static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t s
 }
 
 static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
-    if (section_index == 0 && s_num_favorites > 0) {
-        menu_cell_basic_header_draw(ctx, cell_layer, "★ Favorites");
+    if (section_index == 0) {
+        if (s_num_stations > 0) {
+            menu_cell_basic_header_draw(ctx, cell_layer, "Nearby Stations");
+        } else {
+            menu_cell_basic_header_draw(ctx, cell_layer, "Select Departure");
+        }
     } else {
-        menu_cell_basic_header_draw(ctx, cell_layer, "Nearby Stations");
+        menu_cell_basic_header_draw(ctx, cell_layer, "★ Favorites");
     }
 }
 

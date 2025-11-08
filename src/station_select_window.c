@@ -85,7 +85,7 @@ static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, ui
             menu_cell_basic_header_draw(ctx, cell_layer, "Select Departure");
         }
     } else {
-        menu_cell_basic_header_draw(ctx, cell_layer, "★ Favorites");
+        menu_cell_basic_header_draw(ctx, cell_layer, "Favorites");
     }
 }
 

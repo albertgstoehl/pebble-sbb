@@ -5,7 +5,8 @@ SavedConnection create_saved_connection(
     const char *dep_id, const char *dep_name,
     const char *arr_id, const char *arr_name
 ) {
-    SavedConnection conn = {0};
+    SavedConnection conn;
+    memset(&conn, 0, sizeof(SavedConnection));
 
     // Validate NULL pointers
     if (!dep_id || !dep_name || !arr_id || !arr_name) {
@@ -24,7 +25,8 @@ SavedConnection create_saved_connection(
 }
 
 Station create_station(const char *id, const char *name, int distance) {
-    Station station = {0};
+    Station station;
+    memset(&station, 0, sizeof(Station));
 
     // Validate NULL pointers
     if (!id || !name) {

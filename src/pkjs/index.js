@@ -1,9 +1,9 @@
-const messageHandler = require('./message_handler');
+var messageHandler = require('./message_handler');
 
-Pebble.addEventListener('ready', () => {
-  console.log('PebbleKit JS ready!');
+Pebble.addEventListener('ready', function(event) {
+    console.log('PebbleKit JS ready!');
 });
 
-Pebble.addEventListener('appmessage', (event) => {
-  messageHandler.handleAppMessage(event);
+Pebble.addEventListener('appmessage', function(event) {
+    messageHandler.handleAppMessage(event);
 });

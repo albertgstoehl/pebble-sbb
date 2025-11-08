@@ -1,74 +1,70 @@
 // SBB OpenData API endpoint
-const SBB_API_BASE = 'https://transport.opendata.ch/v1';
+var SBB_API_BASE = 'https://transport.opendata.ch/v1';
 
 // Fetch nearby stations based on coordinates
-async function fetchNearbyStations(lat, lon) {
-  const url = `${SBB_API_BASE}/locations?x=${lon}&y=${lat}&type=station`;
+function fetchNearbyStations(lat, lon, callback) {
+    var url = SBB_API_BASE + '/locations?x=' + lon + '&y=' + lat + '&type=station';
 
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  // Check that data.stations exists and is an array
-  if (!data.stations || !Array.isArray(data.stations)) {
-    return [];
-  }
-
-  const stations = data.stations.slice(0, 10).map(station => ({
-    id: station.id,
-    name: station.name,
-    distance: Math.round(station.distance || 0)
-  }));
-
-  return stations;
+    fetch(url)
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            var stations = data.stations.slice(0, 10).map(function(station) {
+                return {
+                    id: station.id,
+                    name: station.name,
+                    distance: Math.round(station.distance || 0)
+                };
+            });
+            callback(null, stations);
+        })
+        .catch(function(error) {
+            console.error('Error fetching nearby stations:', error);
+            callback(error, null);
+        });
 }
 
 // Fetch connections between two stations
-async function fetchConnections(fromId, toId) {
-  const url = `${SBB_API_BASE}/connections?from=${fromId}&to=${toId}&limit=5`;
+function fetchConnections(fromId, toId, callback) {
+    var url = SBB_API_BASE + '/connections?from=' + fromId + '&to=' + toId + '&limit=5';
 
-  const response = await fetch(url);
+    fetch(url)
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            var connections = data.connections.map(function(conn) {
+                var sections = conn.sections.map(function(section) {
+                    return {
+                        departureStation: section.departure.station.name,
+                        arrivalStation: section.arrival.station.name,
+                        departureTime: Math.floor(new Date(section.departure.departure).getTime() / 1000),
+                        arrivalTime: Math.floor(new Date(section.arrival.arrival).getTime() / 1000),
+                        platform: section.departure.platform || 'N/A',
+                        trainType: section.journey ? (section.journey.category + ' ' + section.journey.number) : 'Walk',
+                        delayMinutes: section.departure.delay || 0
+                    };
+                });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  // Check that data.connections exists and is an array
-  if (!data.connections || !Array.isArray(data.connections)) {
-    return [];
-  }
-
-  const connections = data.connections.map(conn => {
-    const sections = conn.sections.map(section => ({
-      departureStation: section.departure.station.name,
-      arrivalStation: section.arrival.station.name,
-      departureTime: Math.floor(new Date(section.departure.departure).getTime() / 1000),
-      arrivalTime: Math.floor(new Date(section.arrival.arrival).getTime() / 1000),
-      platform: section.departure.platform || 'N/A',
-      trainType: section.journey ? `${section.journey.category} ${section.journey.number}` : 'Walk',
-      delayMinutes: section.departure.delay || 0
-    }));
-
-    return {
-      sections: sections,
-      numSections: sections.length,
-      departureTime: Math.floor(new Date(conn.from.departure).getTime() / 1000),
-      arrivalTime: Math.floor(new Date(conn.to.arrival).getTime() / 1000),
-      totalDelayMinutes: conn.from.delay || 0,
-      numChanges: sections.length - 1
-    };
-  });
-
-  return connections;
+                return {
+                    sections: sections,
+                    numSections: sections.length,
+                    departureTime: Math.floor(new Date(conn.from.departure).getTime() / 1000),
+                    arrivalTime: Math.floor(new Date(conn.to.arrival).getTime() / 1000),
+                    totalDelayMinutes: conn.from.delay || 0,
+                    numChanges: sections.length - 1
+                };
+            });
+            callback(null, connections);
+        })
+        .catch(function(error) {
+            console.error('Error fetching connections:', error);
+            callback(error, null);
+        });
 }
 
 module.exports = {
-  fetchNearbyStations,
-  fetchConnections
+    fetchNearbyStations: fetchNearbyStations,
+    fetchConnections: fetchConnections
 };

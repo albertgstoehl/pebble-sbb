@@ -14,7 +14,12 @@ static void request_connections(void);
 
 static void format_time(time_t timestamp, char *buffer, size_t size) {
     struct tm *tm_info = localtime(&timestamp);
-    strftime(buffer, size, "%H:%M", tm_info);
+    if (tm_info) {
+        strftime(buffer, size, "%H:%M", tm_info);
+    } else {
+        snprintf(buffer, size, "??:??");
+        APP_LOG(APP_LOG_LEVEL_ERROR, "localtime returned NULL for timestamp %d", (int)timestamp);
+    }
 }
 
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {

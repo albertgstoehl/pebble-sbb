@@ -1,8 +1,90 @@
 #include "journey_detail_window.h"
+#include "pinned_connection.h"
+#include "persistence.h"
 
 static Window *s_window;
 static MenuLayer *s_menu_layer;
 static Connection s_connection;
+
+static TextLayer *s_confirmation_layer = NULL;
+
+static void hide_confirmation(void *data) {
+    if (s_confirmation_layer) {
+        text_layer_destroy(s_confirmation_layer);
+        s_confirmation_layer = NULL;
+    }
+}
+
+static void show_confirmation(const char *message) {
+    Layer *window_layer = window_get_root_layer(s_window);
+    GRect bounds = layer_get_bounds(window_layer);
+
+    if (s_confirmation_layer) {
+        text_layer_destroy(s_confirmation_layer);
+    }
+
+    s_confirmation_layer = text_layer_create(GRect(0, bounds.size.h - 40, bounds.size.w, 40));
+    text_layer_set_text(s_confirmation_layer, message);
+    text_layer_set_text_alignment(s_confirmation_layer, GTextAlignmentCenter);
+    text_layer_set_font(s_confirmation_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+    text_layer_set_background_color(s_confirmation_layer, GColorBlack);
+    text_layer_set_text_color(s_confirmation_layer, GColorWhite);
+    layer_add_child(window_layer, text_layer_get_layer(s_confirmation_layer));
+
+    app_timer_register(2000, hide_confirmation, NULL);
+}
+
+static void select_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+    // Save connection route - extract from first and last sections
+    SavedConnection new_connection = create_saved_connection(
+        "",  // Station IDs not available in journey sections
+        s_connection.sections[0].departure_station,
+        "",
+        s_connection.sections[s_connection.num_sections - 1].arrival_station
+    );
+
+    SavedConnection connections[MAX_SAVED_CONNECTIONS];
+    int count = load_connections(connections);
+
+    if (count < MAX_SAVED_CONNECTIONS) {
+        connections[count++] = new_connection;
+        save_connections(connections, count);
+        show_confirmation("Connection saved");
+        APP_LOG(APP_LOG_LEVEL_INFO, "Saved connection: %s -> %s",
+                new_connection.departure_station_name, new_connection.arrival_station_name);
+    } else {
+        show_confirmation("Max connections reached");
+        APP_LOG(APP_LOG_LEVEL_WARNING, "Cannot save: max connections reached");
+    }
+}
+
+static void down_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+    // Pin current connection
+    PinnedConnection pinned;
+    pinned.connection = s_connection;
+
+    // Extract route info from first and last sections
+    SavedConnection route;
+    snprintf(route.departure_station_id, sizeof(route.departure_station_id), "%s", "");
+    snprintf(route.departure_station_name, sizeof(route.departure_station_name), "%s",
+             s_connection.sections[0].departure_station);
+    snprintf(route.arrival_station_id, sizeof(route.arrival_station_id), "%s", "");
+    snprintf(route.arrival_station_name, sizeof(route.arrival_station_name), "%s",
+             s_connection.sections[s_connection.num_sections - 1].arrival_station);
+
+    pinned.route = route;
+    pinned.pinned_at = time(NULL);
+    pinned.is_active = true;
+
+    save_pinned_connection(&pinned);
+    show_confirmation("Connection pinned");
+    APP_LOG(APP_LOG_LEVEL_INFO, "Pinned connection from journey detail");
+}
+
+static void click_config_provider(void *context) {
+    window_long_click_subscribe(BUTTON_ID_SELECT, 700, select_long_click_handler, NULL);
+    window_long_click_subscribe(BUTTON_ID_DOWN, 700, down_long_click_handler, NULL);
+}
 
 // Menu callbacks
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
@@ -172,9 +254,16 @@ static void window_load(Window *window) {
     menu_layer_set_normal_colors(s_menu_layer, GColorWhite, GColorBlack);
     menu_layer_set_highlight_colors(s_menu_layer, GColorBlack, GColorWhite);
     layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
+
+    // Register click config provider for long-press handlers
+    window_set_click_config_provider(s_window, click_config_provider);
 }
 
 static void window_unload(Window *window) {
+    if (s_confirmation_layer) {
+        text_layer_destroy(s_confirmation_layer);
+        s_confirmation_layer = NULL;
+    }
     menu_layer_destroy(s_menu_layer);
 }
 

@@ -1,5 +1,7 @@
 #include "connection_detail_window.h"
 #include "journey_detail_window.h"
+#include "pinned_connection.h"
+#include "persistence.h"
 
 static Window *s_window;
 static MenuLayer *s_menu_layer;
@@ -170,6 +172,86 @@ static void request_connections(void) {
     app_message_outbox_send();
 }
 
+static TextLayer *s_confirmation_layer = NULL;
+
+static void hide_confirmation(void *data) {
+    if (s_confirmation_layer) {
+        text_layer_destroy(s_confirmation_layer);
+        s_confirmation_layer = NULL;
+    }
+}
+
+static void show_confirmation(const char *message) {
+    Layer *window_layer = window_get_root_layer(s_window);
+    GRect bounds = layer_get_bounds(window_layer);
+
+    if (s_confirmation_layer) {
+        text_layer_destroy(s_confirmation_layer);
+    }
+
+    s_confirmation_layer = text_layer_create(GRect(0, bounds.size.h - 40, bounds.size.w, 40));
+    text_layer_set_text(s_confirmation_layer, message);
+    text_layer_set_text_alignment(s_confirmation_layer, GTextAlignmentCenter);
+    text_layer_set_font(s_confirmation_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+    text_layer_set_background_color(s_confirmation_layer, GColorBlack);
+    text_layer_set_text_color(s_confirmation_layer, GColorWhite);
+    layer_add_child(window_layer, text_layer_get_layer(s_confirmation_layer));
+
+    app_timer_register(2000, hide_confirmation, NULL);
+}
+
+static void select_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+    // Save connection route
+    SavedConnection new_connection = create_saved_connection(
+        s_connection.departure_station_id,
+        s_connection.departure_station_name,
+        s_connection.arrival_station_id,
+        s_connection.arrival_station_name
+    );
+
+    SavedConnection connections[MAX_SAVED_CONNECTIONS];
+    int count = load_connections(connections);
+
+    if (count < MAX_SAVED_CONNECTIONS) {
+        connections[count++] = new_connection;
+        save_connections(connections, count);
+        show_confirmation("Connection saved");
+        APP_LOG(APP_LOG_LEVEL_INFO, "Saved connection: %s -> %s",
+                new_connection.departure_station_name, new_connection.arrival_station_name);
+    } else {
+        show_confirmation("Max connections reached");
+        APP_LOG(APP_LOG_LEVEL_WARNING, "Cannot save: max connections reached");
+    }
+}
+
+static void down_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+    // Pin current connection
+    MenuIndex selected = menu_layer_get_selected_index(s_menu_layer);
+
+    if (selected.row >= s_num_connections) {
+        return;
+    }
+
+    Connection *conn = &s_connections[selected.row];
+
+    PinnedConnection pinned;
+    pinned.connection = *conn;
+    pinned.route = s_connection;  // SavedConnection with station info
+    pinned.pinned_at = time(NULL);
+    pinned.is_active = true;
+
+    save_pinned_connection(&pinned);
+    show_confirmation("Connection pinned");
+    APP_LOG(APP_LOG_LEVEL_INFO, "Pinned connection: %s -> %s, arrival: %d",
+            pinned.route.departure_station_name, pinned.route.arrival_station_name,
+            (int)pinned.connection.arrival_time);
+}
+
+static void click_config_provider(void *context) {
+    window_long_click_subscribe(BUTTON_ID_SELECT, 700, select_long_click_handler, NULL);
+    window_long_click_subscribe(BUTTON_ID_DOWN, 700, down_long_click_handler, NULL);
+}
+
 static void window_load(Window *window) {
     APP_LOG(APP_LOG_LEVEL_INFO, "Connection detail window_load called");
     Layer *window_layer = window_get_root_layer(window);
@@ -204,6 +286,9 @@ static void window_load(Window *window) {
 
     APP_LOG(APP_LOG_LEVEL_INFO, "Menu layer configured with colors");
 
+    // Register click config provider for long-press handlers
+    window_set_click_config_provider(s_window, click_config_provider);
+
     // Request initial data
     request_connections();
 
@@ -215,6 +300,10 @@ static void window_unload(Window *window) {
     if (s_refresh_timer) {
         app_timer_cancel(s_refresh_timer);
         s_refresh_timer = NULL;
+    }
+    if (s_confirmation_layer) {
+        text_layer_destroy(s_confirmation_layer);
+        s_confirmation_layer = NULL;
     }
     text_layer_destroy(s_status_layer);
     menu_layer_destroy(s_menu_layer);

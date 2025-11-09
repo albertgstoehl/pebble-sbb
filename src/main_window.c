@@ -5,11 +5,15 @@
 #include "connection_detail_window.h"
 #include "quick_route_window.h"
 #include "station_select_window.h"
+#include "pinned_connection.h"
+#include "journey_detail_window.h"
 
 static Window *s_window;
 static MenuLayer *s_menu_layer;
 static SavedConnection s_connections[MAX_SAVED_CONNECTIONS];
 static int s_num_connections = 0;
+static PinnedConnection s_pinned_connection;
+static bool s_has_pinned = false;
 
 // Forward declarations
 static void quick_route_selected_callback(Station *departure, FavoriteDestination *destination);
@@ -18,11 +22,20 @@ static void start_quick_route(void);
 
 // Menu callbacks
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
-    return 1;
+    return s_has_pinned ? 2 : 1;
 }
 
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-    return s_num_connections > 0 ? s_num_connections : 1;
+    if (s_has_pinned && section_index == 0) {
+        return 1;  // Active Journey section
+    }
+
+    int saved_section = s_has_pinned ? 1 : 0;
+    if (section_index == saved_section) {
+        return s_num_connections > 0 ? s_num_connections : 1;
+    }
+
+    return 0;
 }
 
 static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
@@ -30,10 +43,37 @@ static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t s
 }
 
 static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
-    menu_cell_basic_header_draw(ctx, cell_layer, "Saved Connections");
+    if (s_has_pinned && section_index == 0) {
+        menu_cell_basic_header_draw(ctx, cell_layer, "Active Journey");
+    } else {
+        menu_cell_basic_header_draw(ctx, cell_layer, "Saved Connections");
+    }
 }
 
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+    if (s_has_pinned && cell_index->section == 0) {
+        // Active Journey row
+        static char title[64];
+        static char subtitle[32];
+
+        char dep_time[6];
+        struct tm *dep_tm = localtime(&s_pinned_connection.connection.departure_time);
+        if (dep_tm) {
+            strftime(dep_time, sizeof(dep_time), "%H:%M", dep_tm);
+        } else {
+            snprintf(dep_time, sizeof(dep_time), "??:??");
+        }
+
+        snprintf(title, sizeof(title), "%s → %s",
+                 s_pinned_connection.route.departure_station_name,
+                 s_pinned_connection.route.arrival_station_name);
+        snprintf(subtitle, sizeof(subtitle), "Departs at %s", dep_time);
+
+        menu_cell_basic_draw(ctx, cell_layer, title, subtitle, NULL);
+        return;
+    }
+
+    // Saved Connections section
     if (s_num_connections == 0) {
         menu_cell_basic_draw(ctx, cell_layer, "Add Connection", "Long-press UP", NULL);
     } else {
@@ -47,6 +87,13 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 }
 
 static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    if (s_has_pinned && cell_index->section == 0) {
+        // Open pinned journey detail
+        journey_detail_window_push(&s_pinned_connection.connection);
+        return;
+    }
+
+    // Saved connections section
     if (s_num_connections == 0) {
         add_connection_window_push();
         return;
@@ -95,6 +142,17 @@ static void click_config_provider(void *context) {
 static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
+
+    // Load and check pinned connection
+    s_pinned_connection = load_pinned_connection();
+
+    if (s_pinned_connection.is_active && is_pinned_connection_expired(&s_pinned_connection)) {
+        clear_pinned_connection();
+        s_pinned_connection.is_active = false;
+    }
+
+    s_has_pinned = s_pinned_connection.is_active;
+    APP_LOG(APP_LOG_LEVEL_INFO, "Main window: has_pinned=%d", s_has_pinned);
 
     s_menu_layer = menu_layer_create(bounds);
     menu_layer_set_callbacks(s_menu_layer, NULL, (MenuLayerCallbacks){

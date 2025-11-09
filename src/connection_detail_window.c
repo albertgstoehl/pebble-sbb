@@ -11,7 +11,16 @@ static int s_num_connections = 0;
 static TextLayer *s_status_layer;
 static AppTimer *s_refresh_timer;
 
+// Text scrolling state
+static AppTimer *s_scroll_timer = NULL;
+static int s_scroll_offset = 0;
+static bool s_scrolling_required = false;
+static bool s_menu_reloading = false;
+
 #define REFRESH_INTERVAL_MS 60000  // 60 seconds
+#define SCROLL_WAIT_MS 1000
+#define SCROLL_STEP_MS 200
+#define MENU_CHARS_VISIBLE 14  // Shorter due to time text
 
 static void request_connections(void);
 
@@ -22,6 +31,39 @@ static void format_time(time_t timestamp, char *buffer, size_t size) {
     } else {
         snprintf(buffer, size, "??:??");
         APP_LOG(APP_LOG_LEVEL_ERROR, "localtime returned NULL for timestamp %d", (int)timestamp);
+    }
+}
+
+static void scroll_menu_callback(void *data) {
+    s_scroll_timer = NULL;
+    s_scroll_offset++;
+
+    if (!s_scrolling_required) {
+        return;
+    }
+
+    s_menu_reloading = true;
+    s_scrolling_required = false;
+    menu_layer_reload_data(s_menu_layer);
+    s_scroll_timer = app_timer_register(SCROLL_STEP_MS, scroll_menu_callback, NULL);
+}
+
+static void initiate_menu_scroll_timer(void) {
+    s_scrolling_required = true;
+    s_scroll_offset = 0;
+    s_menu_reloading = false;
+
+    if (s_scroll_timer) {
+        app_timer_cancel(s_scroll_timer);
+    }
+    s_scroll_timer = app_timer_register(SCROLL_WAIT_MS, scroll_menu_callback, NULL);
+}
+
+static void menu_selection_changed_callback(MenuLayer *menu_layer, MenuIndex new_index, MenuIndex old_index, void *data) {
+    if (!s_menu_reloading) {
+        initiate_menu_scroll_timer();
+    } else {
+        s_menu_reloading = false;
     }
 }
 
@@ -122,6 +164,21 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     APP_LOG(APP_LOG_LEVEL_INFO, "Drawing text - Header: '%s', Time: '%s', Footer: '%s'",
             header, time_text, footer);
 
+    // Check if selected for scrolling
+    MenuIndex selected_index = menu_layer_get_selected_index(s_menu_layer);
+    bool is_selected = (cell_index->row == selected_index.row);
+
+    const char *time_to_draw = time_text;
+    if (is_selected) {
+        int len = strlen(time_text);
+        if (len > MENU_CHARS_VISIBLE) {
+            if (s_scroll_offset < len - MENU_CHARS_VISIBLE) {
+                time_to_draw += s_scroll_offset;
+                s_scrolling_required = true;
+            }
+        }
+    }
+
     // Fill background with white first
     graphics_context_set_fill_color(ctx, GColorWhite);
     graphics_fill_rect(ctx, bounds, 0, GCornerNone);
@@ -138,7 +195,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
                       NULL);
 
     // Time (large font)
-    graphics_draw_text(ctx, time_text,
+    graphics_draw_text(ctx, time_to_draw,
                       fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
                       GRect(4, 20, bounds.size.w - 8, 28),
                       GTextOverflowModeTrailingEllipsis,
@@ -275,6 +332,7 @@ static void window_load(Window *window) {
         .draw_header = menu_draw_header_callback,
         .draw_row = menu_draw_row_callback,
         .select_click = menu_select_callback,
+        .selection_changed = menu_selection_changed_callback,
     });
     menu_layer_set_click_config_onto_window(s_menu_layer, window);
 
@@ -300,6 +358,10 @@ static void window_unload(Window *window) {
     if (s_refresh_timer) {
         app_timer_cancel(s_refresh_timer);
         s_refresh_timer = NULL;
+    }
+    if (s_scroll_timer) {
+        app_timer_cancel(s_scroll_timer);
+        s_scroll_timer = NULL;
     }
     if (s_confirmation_layer) {
         text_layer_destroy(s_confirmation_layer);

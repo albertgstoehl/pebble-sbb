@@ -56,6 +56,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 
     // Section row - custom graphics drawing
     int section_idx = cell_index->row - 1;
+    if (section_idx < 0 || section_idx >= s_connection.num_sections) return;
     JourneySection *section = &s_connection.sections[section_idx];
     GRect bounds = layer_get_bounds(cell_layer);
 
@@ -95,7 +96,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     }
 
     // Draw departure station + platform
-    static char dep_text[48];
+    char dep_text[48];
     if (section->platform[0] != '\0') {
         snprintf(dep_text, sizeof(dep_text), "%s | Pl.%s",
                  section->departure_station, section->platform);
@@ -111,7 +112,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
                       NULL);
 
     // Draw train type + departure time
-    static char train_text[32];
+    char train_text[32];
     snprintf(train_text, sizeof(train_text), "%s → %s",
              section->train_type, dep_time);
 
@@ -127,7 +128,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     graphics_context_set_stroke_color(ctx, GColorBlack);
     graphics_draw_circle(ctx, circle_center, circle_radius);
 
-    static char arr_text[48];
+    char arr_text[48];
     snprintf(arr_text, sizeof(arr_text), "%s", section->arrival_station);
 
     graphics_draw_text(ctx, arr_text,
@@ -138,7 +139,7 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
                       NULL);
 
     // Draw arrival time + delay
-    static char arr_info[32];
+    char arr_info[32];
     if (section->delay_minutes > 0) {
         snprintf(arr_info, sizeof(arr_info), "Arr: %s | +%d min",
                  arr_time, section->delay_minutes);

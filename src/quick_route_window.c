@@ -8,6 +8,49 @@ static FavoriteDestination s_favorites[MAX_FAVORITE_DESTINATIONS];
 static int s_num_favorites = 0;
 static QuickRouteCallback s_callback;
 
+// Text scrolling state
+static AppTimer *s_scroll_timer = NULL;
+static int s_scroll_offset = 0;
+static bool s_scrolling_required = false;
+static bool s_menu_reloading = false;
+
+#define SCROLL_WAIT_MS 1000
+#define SCROLL_STEP_MS 200
+#define MENU_CHARS_VISIBLE 17
+
+static void scroll_menu_callback(void *data) {
+    s_scroll_timer = NULL;
+    s_scroll_offset++;
+
+    if (!s_scrolling_required) {
+        return;
+    }
+
+    s_menu_reloading = true;
+    s_scrolling_required = false;
+    menu_layer_reload_data(s_menu_layer);
+    s_scroll_timer = app_timer_register(SCROLL_STEP_MS, scroll_menu_callback, NULL);
+}
+
+static void initiate_menu_scroll_timer(void) {
+    s_scrolling_required = true;
+    s_scroll_offset = 0;
+    s_menu_reloading = false;
+
+    if (s_scroll_timer) {
+        app_timer_cancel(s_scroll_timer);
+    }
+    s_scroll_timer = app_timer_register(SCROLL_WAIT_MS, scroll_menu_callback, NULL);
+}
+
+static void menu_selection_changed_callback(MenuLayer *menu_layer, MenuIndex new_index, MenuIndex old_index, void *data) {
+    if (!s_menu_reloading) {
+        initiate_menu_scroll_timer();
+    } else {
+        s_menu_reloading = false;
+    }
+}
+
 static uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) {
     return 1;
 }
@@ -33,8 +76,23 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
         return;
     }
 
+    MenuIndex selected_index = menu_layer_get_selected_index(s_menu_layer);
+    bool is_selected = (cell_index->row == selected_index.row);
+
     FavoriteDestination *fav = &s_favorites[cell_index->row];
-    menu_cell_basic_draw(ctx, cell_layer, fav->label, fav->name, NULL);
+
+    const char *name_to_draw = fav->name;
+    if (is_selected) {
+        int len = strlen(fav->name);
+        if (len > MENU_CHARS_VISIBLE) {
+            if (s_scroll_offset < len - MENU_CHARS_VISIBLE) {
+                name_to_draw += s_scroll_offset;
+                s_scrolling_required = true;
+            }
+        }
+    }
+
+    menu_cell_basic_draw(ctx, cell_layer, fav->label, name_to_draw, NULL);
 }
 
 static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
@@ -68,6 +126,7 @@ static void window_load(Window *window) {
         .draw_header = menu_draw_header_callback,
         .draw_row = menu_draw_row_callback,
         .select_click = menu_select_callback,
+        .selection_changed = menu_selection_changed_callback,
     });
     menu_layer_set_click_config_onto_window(s_menu_layer, window);
     layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
@@ -78,6 +137,10 @@ static void window_load(Window *window) {
 }
 
 static void window_unload(Window *window) {
+    if (s_scroll_timer) {
+        app_timer_cancel(s_scroll_timer);
+        s_scroll_timer = NULL;
+    }
     menu_layer_destroy(s_menu_layer);
 }
 

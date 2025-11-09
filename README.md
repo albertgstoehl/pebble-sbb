@@ -4,6 +4,22 @@ A Pebble smartwatch app for viewing Swiss train schedules with real-time delay i
 
 ## Features
 
+### Journey Details
+- View detailed multi-section journeys with visual timeline
+- Each transfer shown with departure/arrival stations, platforms, times
+- Graphical representation with circles and connecting lines
+
+### Connection Management
+- Save frequently used routes for quick access
+- Pin active connections to main menu (auto-expires on arrival)
+- Long-press SELECT to save, long-press DOWN to pin
+
+### UI Improvements
+- Horizontal text scrolling for long station names
+- Consistent favorites display across all windows
+- Smooth navigation between connection list and journey details
+
+### Core Features
 - Save favorite train connections (e.g., "Home to Work")
 - Quick routes from any nearby station to favorite destinations
 - Phone configuration page for managing favorites
@@ -12,7 +28,7 @@ A Pebble smartwatch app for viewing Swiss train schedules with real-time delay i
 - Multi-leg journey support with transfer information
 - Auto-refreshing schedule updates every 60 seconds
 - Improved connection display with clear three-line layout
-- Works on Pebble 2 (black & white display)
+- Optimized for Pebble Time and later (basalt platform)
 
 ## Installation
 
@@ -32,7 +48,7 @@ pebble sdk install
 pebble build
 
 # Install on emulator
-pebble install --emulator aplite
+pebble install --emulator basalt
 
 # Install on physical watch
 pebble install --phone YOUR_PHONE_IP
@@ -101,7 +117,7 @@ src/
 npm test
 
 # Run in emulator
-pebble build && pebble install --emulator aplite
+pebble build && pebble install --emulator basalt
 
 # View logs
 pebble logs

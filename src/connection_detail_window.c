@@ -47,6 +47,19 @@ static int16_t menu_get_cell_height_callback(MenuLayer *menu_layer, MenuIndex *c
     return 68;  // Taller cells for three-line layout
 }
 
+static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    if (s_num_connections == 0) {
+        return;  // No connections to select
+    }
+
+    if (cell_index->row >= s_num_connections) {
+        return;  // Out of bounds
+    }
+
+    Connection *selected = &s_connections[cell_index->row];
+    journey_detail_window_push(selected);
+}
+
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
     APP_LOG(APP_LOG_LEVEL_INFO, "Drawing row %d, total connections: %d", cell_index->row, s_num_connections);
 
@@ -179,6 +192,7 @@ static void window_load(Window *window) {
         .get_cell_height = menu_get_cell_height_callback,
         .draw_header = menu_draw_header_callback,
         .draw_row = menu_draw_row_callback,
+        .select_click = menu_select_callback,
     });
     menu_layer_set_click_config_onto_window(s_menu_layer, window);
 
